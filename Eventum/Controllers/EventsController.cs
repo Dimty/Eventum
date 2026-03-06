@@ -13,14 +13,23 @@ public class EventsController(IEventService eventService) : ControllerBase
     private readonly IEventService _eventService = eventService;
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Event>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<EventResponseDto>), StatusCodes.Status200OK)]
     public IActionResult Get()
     {
-        return Ok(_eventService.GetAll());
+        var events = _eventService.GetAll()
+            .Select(e => new EventResponseDto
+            {
+                Id = e.Id,
+                Description = e.Description,
+                Title = e.Title,
+                StartAt = e.StartAt,
+                EndAt = e.EndAt,
+            });
+        return Ok(events);
     }
 
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Event), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(Guid id)
     {
@@ -28,11 +37,20 @@ public class EventsController(IEventService eventService) : ControllerBase
 
         if (ev is null) return NotFound();
 
-        return Ok(ev);
+        var dto = new EventResponseDto
+        {
+            Id = ev.Id,
+            Description = ev.Description,
+            Title = ev.Title,
+            StartAt = ev.StartAt,
+            EndAt = ev.EndAt,
+        };
+
+        return Ok(dto);
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Post(CreateEventDto createdEvent)
     {
@@ -44,7 +62,16 @@ public class EventsController(IEventService eventService) : ControllerBase
             EndAt = createdEvent.EndAt,
         });
 
-        return CreatedAtAction(nameof(GetById), new { id = newEvent.Id }, newEvent);
+        var dto = new EventResponseDto
+        {
+            Id = newEvent.Id,
+            Description = newEvent.Description,
+            Title = newEvent.Title,
+            StartAt = newEvent.StartAt,
+            EndAt = newEvent.EndAt,
+        };
+
+        return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
     }
 
     [HttpPut("{id}")]
