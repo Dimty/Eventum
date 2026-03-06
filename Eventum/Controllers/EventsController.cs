@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Eventum.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("events")]
 public class EventsController(IEventService eventService) : ControllerBase
 {
     private readonly IEventService _eventService = eventService;
