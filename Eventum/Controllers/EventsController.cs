@@ -36,14 +36,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Post(CreateEventDto createdEvent)
     {
-        if (createdEvent.StartAt > createdEvent.EndAt)
-        {
-            ModelState.AddModelError(nameof(createdEvent.EndAt), 
-                "EndAt must be later than StartAt");
-
-            return ValidationProblem(ModelState);
-        }
-        
         var newEvent = _eventService.Create(new Event
         {
             Description = createdEvent.Description,
@@ -61,14 +53,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Put(Guid id, UpdateEventDto updatedEvent)
     {
-        if (updatedEvent.StartAt > updatedEvent.EndAt)
-        {
-            ModelState.AddModelError(nameof(updatedEvent.EndAt), 
-                "EndAt must be later than StartAt");
-
-            return ValidationProblem(ModelState);
-        }
-
         var updated = _eventService.Update(id, new Event
         {
             Description = updatedEvent.Description,
