@@ -7,7 +7,7 @@ namespace Eventum.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class EventsControllers(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService) : ControllerBase
 {
     private readonly IEventService _eventService = eventService;
 
