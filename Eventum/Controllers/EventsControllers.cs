@@ -5,12 +5,18 @@ namespace Eventum.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class EventsControllers:ControllerBase
+public class EventsControllers():ControllerBase
 {
     [HttpGet]
     public IActionResult Get()
     {
         throw new NotImplementedException();
+    }
+
+    [HttpGet("{id}")]
+    public IActionResult GetById(int id)
+    {
+        throw  new NotImplementedException();
     }
     
     [HttpPost]
