@@ -46,8 +46,7 @@ public class EventsController(IEventService eventService) : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Put(Guid id, UpdateEventDto updatedEvent)
     {
-        if (updatedEvent.EndAt <= updatedEvent.StartAt)
-            return BadRequest("EndAt must be later than StartAt");
+        if (updatedEvent.StartAt > updatedEvent.EndAt) return BadRequest("EndAt must be later than StartAt");
 
         var updated = _eventService.Update(id, new Event
         {
