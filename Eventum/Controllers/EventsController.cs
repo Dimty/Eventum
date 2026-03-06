@@ -30,8 +30,14 @@ public class EventsController(IEventService eventService) : ControllerBase
     [HttpPost]
     public IActionResult Post(CreateEventDto createdEvent)
     {
-        if (createdEvent.StartAt > createdEvent.EndAt) return BadRequest("EndAt must be later than StartAt");
+        if (createdEvent.StartAt > createdEvent.EndAt)
+        {
+            ModelState.AddModelError(nameof(createdEvent.EndAt), 
+                "EndAt must be later than StartAt");
 
+            return ValidationProblem(ModelState);
+        }
+        
         var newEvent = _eventService.Create(new Event
         {
             Description = createdEvent.Description,
@@ -46,7 +52,13 @@ public class EventsController(IEventService eventService) : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Put(Guid id, UpdateEventDto updatedEvent)
     {
-        if (updatedEvent.StartAt > updatedEvent.EndAt) return BadRequest("EndAt must be later than StartAt");
+        if (updatedEvent.StartAt > updatedEvent.EndAt)
+        {
+            ModelState.AddModelError(nameof(updatedEvent.EndAt), 
+                "EndAt must be later than StartAt");
+
+            return ValidationProblem(ModelState);
+        }
 
         var updated = _eventService.Update(id, new Event
         {
