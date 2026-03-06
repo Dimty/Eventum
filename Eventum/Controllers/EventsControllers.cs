@@ -65,7 +65,7 @@ public class EventsController(IEventService eventService) : ControllerBase
     [HttpDelete("{id}")]
     public IActionResult Delete(Guid id)
     {
-        if (_eventService.GetById(id) is null) return NotFound();
-        return NoContent();
+        if (_eventService.Delete(id)) return NoContent();
+        return NotFound();
     }
 }
