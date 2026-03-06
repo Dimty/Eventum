@@ -7,17 +7,21 @@ namespace Eventum.Controllers;
 
 [ApiController]
 [Route("events")]
+[Produces("application/json")]
 public class EventsController(IEventService eventService) : ControllerBase
 {
     private readonly IEventService _eventService = eventService;
 
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<Event>), StatusCodes.Status200OK)]
     public IActionResult Get()
     {
         return Ok(_eventService.GetAll());
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(Event), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(Guid id)
     {
         var ev = _eventService.GetById(id);
@@ -28,6 +32,8 @@ public class EventsController(IEventService eventService) : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Post(CreateEventDto createdEvent)
     {
         if (createdEvent.StartAt > createdEvent.EndAt)
@@ -50,6 +56,9 @@ public class EventsController(IEventService eventService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Put(Guid id, UpdateEventDto updatedEvent)
     {
         if (updatedEvent.StartAt > updatedEvent.EndAt)
@@ -74,6 +83,8 @@ public class EventsController(IEventService eventService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid id)
     {
         if (_eventService.Delete(id)) return NoContent();
