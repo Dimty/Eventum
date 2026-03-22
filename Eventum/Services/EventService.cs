@@ -14,7 +14,12 @@ public class EventService: IEventService
 
     public Event? GetById(Guid id)
     {
-        return _events.FirstOrDefault(x => x.Id == id);
+        var ev = _events.FirstOrDefault(e => e.Id == id);
+
+        if (ev == null)
+            throw new KeyNotFoundException($"Event with id {id} not found");
+
+        return ev;
     }
 
     public Event Create(Event newEvent)
@@ -26,9 +31,7 @@ public class EventService: IEventService
 
     public bool Update(Guid id, Event updatedEvent)
     {
-        var ev = GetById(id);
-
-        if (ev is null) return false;
+        var ev = GetById(id)!;
         
         ev.Description = updatedEvent.Description;
         ev.Title = updatedEvent.Title;
@@ -41,7 +44,7 @@ public class EventService: IEventService
     public bool Delete(Guid id)
     {
         var ev = GetById(id);
-
+        
         return ev is not null && _events.Remove(ev);
     }
 }
