@@ -1,10 +1,11 @@
-﻿using Eventum.Models;
+﻿using Eventum.DTO;
+using Eventum.Models;
 
 namespace Eventum.Services.Interfaces;
 
 public interface IEventService
 {
-    IEnumerable<Event> GetAll(string? title, DateTime? from, DateTime? to);
+    PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to);
 
     Event? GetById(Guid id);
 
