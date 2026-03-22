@@ -53,4 +53,11 @@ public class EventServiceTests
         
         Assert.Equal(ev.Title, result.Title);
     }
+    
+    [Fact]
+    public void GetById_ShouldThrow_IfNotFound()
+    {
+        Assert.Throws<KeyNotFoundException>(() =>
+            _service.GetById(Guid.NewGuid()));
+    }
 }
