@@ -102,4 +102,15 @@ public class EventServiceTests
         Assert.Throws<KeyNotFoundException>(() =>
             _service.Delete(Guid.NewGuid()));
     }
+
+    [Fact]
+    public void GetAll_ShouldFilterByTitle()
+    {
+        CreateInstance("Working", DateTime.Now, DateTime.Now.AddHours(1));
+        CreateInstance("Party", DateTime.Now, DateTime.Now.AddHours(1));
+
+        var result = _service.GetAll("work", null, null, 1, 10);
+
+        Assert.Single(result.Items);
+    }
 }
