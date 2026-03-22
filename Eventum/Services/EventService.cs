@@ -1,4 +1,5 @@
-﻿using Eventum.Models;
+﻿using Eventum.DTO;
+using Eventum.Models;
 using Eventum.Services.Interfaces;
 
 namespace Eventum.Services;
@@ -7,7 +8,7 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
 
-    public IEnumerable<Event> GetAll(string? title, DateTime? from, DateTime? to)
+    public PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
     {
         var query = _events.AsEnumerable();
 
@@ -20,7 +21,21 @@ public class EventService : IEventService
         if (to.HasValue)
             query = query.Where(ev => ev.EndAt <= to.Value);
 
-        return query.ToList();
+        var total = query.Count();
+
+        var items = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+        
+        return new PaginatedResult<Event>
+        {
+            TotalCount = total,
+            Page = page,
+            PageSize = pageSize,
+            Count = items.Count,
+            Items = items
+        };
     }
 
     public Event? GetById(Guid id)
