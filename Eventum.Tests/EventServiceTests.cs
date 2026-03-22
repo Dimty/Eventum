@@ -142,4 +142,25 @@ public class EventServiceTests
         Assert.Equal(2, result.Items.Count());
         Assert.Equal("Relax", result.Items.First().Title);
     }
+    
+    [Fact]
+    public void GetAll_ShouldApplyAllFilters()
+    {
+        var now = DateTime.Now;
+
+        CreateInstance("Working", now, now.AddHours(1));
+        CreateInstance("Party", now.AddDays(5), now.AddDays(6));
+        CreateInstance("Relax on office", now.AddDays(1), now.AddHours(1));
+        CreateInstance("Relax one more time", now, now.AddMonths(1));
+
+        var result = _service.GetAll(
+            title: "relax",
+            from: now,
+            to: now.AddDays(10),
+            page: 1,
+            pageSize: 10);
+
+        Assert.Single(result.Items);
+        Assert.Equal("Relax on office", result.Items.First().Title);
+    }
 }
