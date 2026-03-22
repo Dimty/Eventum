@@ -13,18 +13,10 @@ public class EventsController(IEventService eventService) : ControllerBase
     private readonly IEventService _eventService = eventService;
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<EventResponseDto>), StatusCodes.Status200OK)]
-    public IActionResult Get(string? title, DateTime? from, DateTime? to)
+    [ProducesResponseType(typeof(PaginatedResult<Event>), StatusCodes.Status200OK)]
+    public IActionResult Get(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
     {
-        var events = _eventService.GetAll(title, from, to)
-            .Select(e => new EventResponseDto
-            {
-                Id = e.Id,
-                Description = e.Description,
-                Title = e.Title,
-                StartAt = e.StartAt,
-                EndAt = e.EndAt,
-            });
+        var events = _eventService.GetAll(title, from, to, page, pageSize);
         return Ok(events);
     }
 
