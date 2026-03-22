@@ -127,4 +127,19 @@ public class EventServiceTests
         Assert.Single(result.Items);
         Assert.Equal("Party", result.Items.First().Title);
     }
+    
+    [Fact]
+    public void GetAll_ShouldPaginate()
+    {
+        CreateInstance("Working", DateTime.Now, DateTime.Now.AddHours(1));
+        CreateInstance("Party", DateTime.Now, DateTime.Now.AddHours(1));
+        CreateInstance("Relax", DateTime.Now, DateTime.Now.AddHours(1));
+        CreateInstance("Relax one more time", DateTime.Now, DateTime.Now.AddHours(1));
+
+        var result = _service.GetAll(null, null, null, 2, 2);
+
+        Assert.Equal(4, result.TotalCount);
+        Assert.Equal(2, result.Items.Count());
+        Assert.Equal("Relax", result.Items.First().Title);
+    }
 }
