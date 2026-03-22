@@ -77,4 +77,11 @@ public class EventServiceTests
 
         Assert.Equal("New", updated.Title);
     }
+    
+    [Fact]
+    public void Update_ShouldThrow_IfNotFound()
+    {
+        Assert.Throws<KeyNotFoundException>(() =>
+            _service.Update(Guid.NewGuid(), new Event()));
+    }
 }
