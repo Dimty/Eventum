@@ -51,7 +51,7 @@ public class EventServiceTests
         
         var result = _service.GetById(ev.Id);
         
-        Assert.Equal(ev.Title, result.Title);
+        Assert.Equal(ev.Title, result!.Title);
     }
     
     [Fact]
@@ -75,7 +75,7 @@ public class EventServiceTests
 
         var updated = _service.GetById(ev.Id);
 
-        Assert.Equal("New", updated.Title);
+        Assert.Equal("New", updated!.Title);
     }
     
     [Fact]
