@@ -84,4 +84,15 @@ public class EventServiceTests
         Assert.Throws<KeyNotFoundException>(() =>
             _service.Update(Guid.NewGuid(), new Event()));
     }
+    
+    [Fact]
+    public void Delete_ShouldRemoveEvent()
+    {
+        var ev = CreateInstance("Event", DateTime.Now, DateTime.Now.AddHours(1));
+
+        _service.Delete(ev.Id);
+
+        Assert.Throws<KeyNotFoundException>(() =>
+            _service.GetById(ev.Id));
+    }
 }
