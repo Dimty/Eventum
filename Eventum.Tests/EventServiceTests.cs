@@ -21,6 +21,7 @@ public class EventServiceTests
         var result = _service.Create(ev);
 
         Assert.NotEqual(Guid.Empty, result.Id);
+        Assert.Equal(ev.Title, result.Title);
     }
 
 }
