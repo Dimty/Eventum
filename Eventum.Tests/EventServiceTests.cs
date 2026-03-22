@@ -43,4 +43,14 @@ public class EventServiceTests
         Assert.Equal(2, result.TotalCount);
         Assert.Equal(2, result.Items.Count());
     }
+    
+    [Fact]
+    public void GetById_ShouldReturnEvent()
+    {
+        var ev = CreateInstance("EventA", DateTime.Now, DateTime.Now.AddHours(1));
+        
+        var result = _service.GetById(ev.Id);
+        
+        Assert.Equal(ev.Title, result.Title);
+    }
 }
