@@ -60,4 +60,21 @@ public class EventServiceTests
         Assert.Throws<KeyNotFoundException>(() =>
             _service.GetById(Guid.NewGuid()));
     }
+    
+    [Fact]
+    public void Update_ShouldUpdateEvent()
+    {
+        var ev = CreateInstance("Old", DateTime.Now, DateTime.Now.AddHours(1));
+
+        _service.Update(ev.Id, new Event
+        {
+            Title = "New",
+            StartAt = ev.StartAt,
+            EndAt = ev.EndAt
+        });
+
+        var updated = _service.GetById(ev.Id);
+
+        Assert.Equal("New", updated.Title);
+    }
 }
