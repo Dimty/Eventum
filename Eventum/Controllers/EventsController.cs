@@ -35,8 +35,6 @@ public class EventsController(IEventService eventService) : ControllerBase
     {
         var ev = _eventService.GetById(id);
 
-        if (ev is null) return NotFound();
-
         var dto = new EventResponseDto
         {
             Id = ev.Id,
@@ -88,8 +86,6 @@ public class EventsController(IEventService eventService) : ControllerBase
             EndAt = updatedEvent.EndAt,
         });
 
-        if (!updated) return NotFound();
-
         return NoContent();
     }
 
@@ -98,7 +94,7 @@ public class EventsController(IEventService eventService) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid id)
     {
-        if (_eventService.Delete(id)) return NoContent();
-        return NotFound();
+        _eventService.Delete(id);
+        return NoContent();
     }
 }
