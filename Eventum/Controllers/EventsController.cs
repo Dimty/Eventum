@@ -14,9 +14,9 @@ public class EventsController(IEventService eventService) : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EventResponseDto>), StatusCodes.Status200OK)]
-    public IActionResult Get()
+    public IActionResult Get(string? title, DateTime? from, DateTime? to)
     {
-        var events = _eventService.GetAll()
+        var events = _eventService.GetAll(title, from, to)
             .Select(e => new EventResponseDto
             {
                 Id = e.Id,
