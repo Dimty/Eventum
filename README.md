@@ -10,31 +10,63 @@ dotnet build
 dotnet run --project Eventum/Eventum.csproj
 ```
 
+## Запуск тестов
+
+Для запуска unit-тестов выполните команду из корневого каталога проекта:
+
+```bash
+dotnet test
+```
 # Документация API
 
 Базовый путь: `/events`
 
-Использует DTO для запросов (`CreateEventDto`, `UpdateEventDto`) и DTO для ответов (`EventResponseDto`).
+Использует DTO для запросов (`CreateEventDto`, `UpdateEventDto`) и DTO для ответов (`EventResponseDto`, `PaginatedResult`).
 
 ---
 
-## 1. Получить список всех событий
+## 1. Получить список всех событий с возможностью пагинации
 
 - **Метод:** `GET`
 - **URL:** `/events`
 - **Тело запроса:** нет
-- **Ответ:** `200 OK` — список `EventResponseDto`
+-  **Query-параметры:**
+   - `title` (string, опционально)  
+  Поиск по названию события (регистронезависимый, частичное совпадение)
+   - `from` (DateTime, опционально)  
+    Вернуть события, которые начинаются **не раньше** указанной даты
+   - `to` (DateTime, опционально)  
+    Вернуть события, которые заканчиваются **не позже** указанной даты
+   - `page` (int, опционально, по умолчанию = 1)  
+    Номер страницы
+   - `pageSize` (int, опционально, по умолчанию = 10)  
+    Количество элементов на странице
+- **Ответ:** `200 OK` — `PaginatedResult<Event>`
+
+Пример запроса
+
+```http
+GET /events?title=meet&from=2025-01-01&page=1&pageSize=5
+```
 
 Пример ответа:
 
 ```json
 [
   {
-    "id": "b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678",
-    "title": "Конференция",
-    "description": "Техническая конференция по C#",
-    "startAt": "2026-03-10T09:00:00",
-    "endAt": "2026-03-10T17:00:00"
+    "totalCount": 1,
+    "page": 1,
+    "pageSize": 10,
+    "count": 1,
+    "items": [
+      {
+        "id": "27585d89-5ef9-40ac-b282-520f27369741",
+        "title": "string",
+        "description": "string",
+        "startAt": "2026-03-22",
+        "endAt": "2026-03-22"
+      }
+    ]
   }
 ]
 ```
@@ -46,6 +78,11 @@ dotnet run --project Eventum/Eventum.csproj
 - **Тело запроса:** нет
 - **Ответ:** `200 OK` — список `EventResponseDto`
 - **Ответ:** `404 Not Found` — `если событие не найдено`
+
+Пример запроса
+```http
+GET /events/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
+```
 
 Пример ответа:
 
@@ -68,6 +105,19 @@ dotnet run --project Eventum/Eventum.csproj
 - **Тело запроса:** `CreateEventDto`
 - **Ответ:** `201 Created` — `возвращает EventResponseDto с новым id`
 - **Ответ:** `400 Bad Request` — `если StartAt > EndAt или отсутствуют обязательные поля (Title, StartAt, EndAt)`
+
+Пример запроса
+```http
+POST /events
+  -H 'accept: application/json'
+  -H 'Content-Type: application/json'
+  -d '{
+    "title": "string",
+    "description": "string",
+    "startAt": "2026-03-22T14:37:28.202Z",
+    "endAt": "2026-03-22T14:37:28.202Z"
+}
+```
 
 Пример ответа:
 
@@ -92,6 +142,19 @@ dotnet run --project Eventum/Eventum.csproj
 - **Ответ:** `400 Bad Request` — `если StartAt > EndAt или отсутствуют обязательные поля (Title, StartAt, EndAt)`
 - **Ответ:** `404 Not Found` — `если событие с таким id не найдено`
 
+Пример запроса
+```http
+PUT /events/a0821e5e-2163-46cd-95a5-f05cc2febd84
+  -H 'accept: */*' 
+  -H 'Content-Type: application/json' 
+  -d '{
+    "title": "string",
+    "description": "string",
+    "startAt": "2026-03-22T14:44:03.087Z",
+    "endAt": "2026-03-22T14:44:03.087Z"
+}'
+```
+
 ## 5. Удалить событие
 
 - **Метод:** `DELETE`
@@ -99,3 +162,8 @@ dotnet run --project Eventum/Eventum.csproj
 - **Тело запроса:** `нет`
 - **Ответ:** `204 No Content` — `успешно удалено`
 - **Ответ:** `404 Not Found` — `если событие не найдено`
+
+Пример запроса
+```http
+DELETE /events/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
+```
