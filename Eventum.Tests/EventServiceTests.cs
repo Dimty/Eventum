@@ -113,4 +113,18 @@ public class EventServiceTests
 
         Assert.Single(result.Items);
     }
+    
+    [Fact]
+    public void GetAll_ShouldFilterByDateRange()
+    {
+        var now = DateTime.Now;
+
+        CreateInstance("Working", now.AddDays(-2), now.AddDays(-1));
+        CreateInstance("Party", now.AddDays(1), now.AddDays(2));
+
+        var result = _service.GetAll(null, now, now.AddDays(3), 1, 10);
+
+        Assert.Single(result.Items);
+        Assert.Equal("Party", result.Items.First().Title);
+    }
 }
