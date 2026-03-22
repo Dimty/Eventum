@@ -51,7 +51,8 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
     private static int MapStatusCode(Exception ex)
         => ex switch
         {
-            ValidationException ve => StatusCodes.Status400BadRequest,
+            ValidationException => StatusCodes.Status400BadRequest,
+            KeyNotFoundException => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status500InternalServerError
         };
 }
