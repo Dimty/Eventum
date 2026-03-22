@@ -95,4 +95,11 @@ public class EventServiceTests
         Assert.Throws<KeyNotFoundException>(() =>
             _service.GetById(ev.Id));
     }
+    
+    [Fact]
+    public void Delete_ShouldThrow_IfNotFound()
+    {
+        Assert.Throws<KeyNotFoundException>(() =>
+            _service.Delete(Guid.NewGuid()));
+    }
 }
