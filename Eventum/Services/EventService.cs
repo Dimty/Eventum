@@ -3,13 +3,24 @@ using Eventum.Services.Interfaces;
 
 namespace Eventum.Services;
 
-public class EventService: IEventService
+public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
-    
-    public IEnumerable<Event> GetAll()
+
+    public IEnumerable<Event> GetAll(string? title, DateTime? from, DateTime? to)
     {
-        return _events.AsReadOnly();
+        var query = _events.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(title))
+            query = query.Where(ev => ev.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+
+        if (from.HasValue)
+            query = query.Where(ev => ev.StartAt >= from.Value);
+
+        if (to.HasValue)
+            query = query.Where(ev => ev.EndAt <= to.Value);
+
+        return query.ToList();
     }
 
     public Event? GetById(Guid id)
@@ -32,7 +43,7 @@ public class EventService: IEventService
     public bool Update(Guid id, Event updatedEvent)
     {
         var ev = GetById(id)!;
-        
+
         ev.Description = updatedEvent.Description;
         ev.Title = updatedEvent.Title;
         ev.StartAt = updatedEvent.StartAt;
@@ -44,7 +55,7 @@ public class EventService: IEventService
     public bool Delete(Guid id)
     {
         var ev = GetById(id);
-        
+
         return ev is not null && _events.Remove(ev);
     }
 }
