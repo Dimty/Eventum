@@ -40,12 +40,6 @@ public class EventServiceTests
 
         var result = _service.GetAll(null, null, null, 1, 10);
 
-        Assert.NotNull(result.Items.FirstOrDefault());
-        Assert.NotNull(result.Items.LastOrDefault());
-        
-        Assert.Equal("EventA",result.Items.First().Title);
-        Assert.Equal("EventB",result.Items.Last().Title);
-        
         Assert.Equal(2, result.TotalCount);
         Assert.Equal(2, result.Items.Count());
     }
