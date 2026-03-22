@@ -1,3 +1,4 @@
+using Eventum.Middleware;
 using Eventum.Services;
 using Eventum.Services.Interfaces;
 
@@ -21,6 +22,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 app.MapControllers();
 
 app.Run();
