@@ -64,4 +64,19 @@ public class BookingServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() =>
             _bookingService.GetBookingByIdAsync(Guid.NewGuid()));
     }
+
+    [Fact]
+    public async Task Booking_ShouldReflectStatusChange()
+    {
+        var evId = CreateEvent();
+        var booking = await _bookingService.CreateBookingAsync(evId);
+
+        booking.Status = BookingStatus.Confirmed;
+        booking.ProcessedAt = DateTime.UtcNow;
+
+        var result = await _bookingService.GetBookingByIdAsync(booking.Id);
+
+        Assert.Equal(BookingStatus.Confirmed, result.Status);
+        Assert.NotNull(result.ProcessedAt);
+    }
 }
