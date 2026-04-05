@@ -13,6 +13,8 @@ builder.Services.AddSwaggerGen();
 //Singleton was used because the event list is stored in memory
 builder.Services.AddSingleton<IEventService, EventService>();
 
+builder.Services.AddSingleton<IBookingService, BookingService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
