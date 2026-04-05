@@ -1,4 +1,5 @@
-﻿using Eventum.Models;
+﻿using Eventum.Exceptions;
+using Eventum.Models;
 using Eventum.Services;
 
 namespace Eventum.Tests;
@@ -55,5 +56,12 @@ public class BookingServiceTests
         var result = await _bookingService.GetBookingByIdAsync(booking.Id);
         
         Assert.Equal(booking.Id, result.Id);
+    }
+    
+    [Fact]
+    public async Task GetBookingByIdAsync_ShouldThrow_IfNotFound()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _bookingService.GetBookingByIdAsync(Guid.NewGuid()));
     }
 }
