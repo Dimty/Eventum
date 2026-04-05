@@ -1,6 +1,37 @@
-﻿namespace Eventum.Tests;
+﻿using Eventum.Models;
+using Eventum.Services;
+
+namespace Eventum.Tests;
 
 public class BookingServiceTests
 {
+    private readonly BookingService _bookingService;
+    private readonly EventService _eventService = new();
     
+    public BookingServiceTests()
+    {
+        _bookingService = new(_eventService);
+    }
+
+    private Guid CreateEvent()
+    {
+        var ev = _eventService.Create(new Event
+        {
+            Title = "Test",
+            StartAt = DateTime.Now,
+            EndAt =  DateTime.Now.AddDays(1),
+        });
+        
+        return ev.Id;
+    }
+
+    [Fact]
+    public async Task CreateBookingAsync_ShouldReturnPending()
+    {
+        var evId = CreateEvent();
+        
+        var booking = await _bookingService.CreateBookingAsync(evId);
+        
+        Assert.Equal(BookingStatus.Pending, booking.Status);
+    }
 }
