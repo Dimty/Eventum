@@ -1,3 +1,4 @@
+using Eventum.Background;
 using Eventum.Middleware;
 using Eventum.Services;
 using Eventum.Services.Interfaces;
@@ -14,6 +15,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IEventService, EventService>();
 
 builder.Services.AddSingleton<IBookingService, BookingService>();
+builder.Services.AddHostedService<BookingProcessingService>();
 
 var app = builder.Build();
 
