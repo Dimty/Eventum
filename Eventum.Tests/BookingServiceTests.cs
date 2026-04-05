@@ -86,4 +86,19 @@ public class BookingServiceTests
         Assert.Equal(BookingStatus.Confirmed, result.Status);
         Assert.NotNull(result.ProcessedAt);
     }
+    
+    [Fact]
+    public async Task ProcessBooking_ShouldReturnRejected_WhenTaskCanceled()
+    {
+        var evId = CreateEvent();
+        var booking = await _bookingService.CreateBookingAsync(evId);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await _bookingService.ProcessBookingAsync(booking, cts.Token);
+
+        Assert.Equal(BookingStatus.Rejected, booking.Status);
+        Assert.NotNull(booking.ProcessedAt);
+    }
 }
