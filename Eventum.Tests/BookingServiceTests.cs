@@ -64,6 +64,13 @@ public class BookingServiceTests
         await Assert.ThrowsAsync<NotFoundException>(() =>
             _bookingService.GetBookingByIdAsync(Guid.NewGuid()));
     }
+    
+    [Fact]
+    public async Task CreateBookingAsync_ShouldThrow_IfEventNotFound()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _bookingService.CreateBookingAsync(Guid.NewGuid()));
+    }
 
     [Fact]
     public async Task Booking_ShouldReflectStatusChange()
