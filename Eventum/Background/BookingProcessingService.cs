@@ -14,15 +14,12 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
         while (!stoppingToken.IsCancellationRequested)
         {
             using var scope = _serviceScopeFactory.CreateScope();
-            var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>() as BookingService;
+            var bookingService = scope.ServiceProvider.GetRequiredService<IBookingProcessingService>();
             var pending = bookingService!.GetPendingBookings();
 
             foreach (var booking in pending)
             {
-                await Task.Delay(_random.Next(1000, 5000), stoppingToken);
-                
-                booking.Status = BookingStatus.Confirmed;
-                booking.ProcessedAt = DateTime.UtcNow;
+                await bookingService.ProcessBookingAsync(booking, stoppingToken);
             }
             
             await Task.Delay(1000, stoppingToken);
