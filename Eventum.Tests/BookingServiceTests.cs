@@ -34,4 +34,15 @@ public class BookingServiceTests
         
         Assert.Equal(BookingStatus.Pending, booking.Status);
     }
+    
+    [Fact]
+    public async Task CreateBookingAsync_ShouldCreateUniqueBooking()
+    {
+        var evId = CreateEvent();
+        
+        var booking1 = await _bookingService.CreateBookingAsync(evId);
+        var booking2 = await _bookingService.CreateBookingAsync(evId);
+        
+        Assert.NotEqual(booking1.Id, booking2.Id);
+    }
 }
