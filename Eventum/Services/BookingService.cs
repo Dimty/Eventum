@@ -1,4 +1,5 @@
-﻿using Eventum.Exceptions;
+﻿using System.Collections.Concurrent;
+using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services.Interfaces;
 
@@ -6,7 +7,7 @@ namespace Eventum.Services;
 
 public class BookingService(IEventService eventService): IBookingService
 {
-    private readonly List<Booking> _bookings = new();
+    private readonly ConcurrentDictionary<Guid, Booking> _bookings = new();
     private readonly IEventService _eventService = eventService;
 
     public Task<Booking> CreateBookingAsync(Guid eventId)
@@ -21,16 +22,14 @@ public class BookingService(IEventService eventService): IBookingService
           CreatedAt =  DateTime.UtcNow
         };
         
-        _bookings.Add(booking);
+        _bookings[booking.Id] = booking;
         
         return Task.FromResult(booking);
     }
 
     public Task<Booking> GetBookingByIdAsync(Guid bookingId)
     {
-        var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
-
-        if (booking == null)
+        if (!_bookings.TryGetValue(bookingId, out var booking))
             throw new NotFoundException($"Booking {bookingId} not found");
 
         return Task.FromResult(booking);
@@ -38,6 +37,6 @@ public class BookingService(IEventService eventService): IBookingService
     
     public IEnumerable<Booking> GetPendingBookings()
     {
-        return _bookings.Where(b => b.Status == BookingStatus.Pending).ToList();
+        return _bookings.Values.Where(b => b.Status == BookingStatus.Pending).ToList();
     }
 }
