@@ -1,4 +1,5 @@
-﻿using Eventum.Models;
+﻿using Eventum.Exceptions;
+using Eventum.Models;
 using Eventum.Services;
 
 namespace Eventum.Tests;
@@ -57,7 +58,7 @@ public class EventServiceTests
     [Fact]
     public void GetById_ShouldThrow_IfNotFound()
     {
-        Assert.Throws<KeyNotFoundException>(() =>
+        Assert.Throws<NotFoundException>(() =>
             _service.GetById(Guid.NewGuid()));
     }
     
@@ -81,7 +82,7 @@ public class EventServiceTests
     [Fact]
     public void Update_ShouldThrow_IfNotFound()
     {
-        Assert.Throws<KeyNotFoundException>(() =>
+        Assert.Throws<NotFoundException>(() =>
             _service.Update(Guid.NewGuid(), new Event()));
     }
     
@@ -92,14 +93,14 @@ public class EventServiceTests
 
         _service.Delete(ev.Id);
 
-        Assert.Throws<KeyNotFoundException>(() =>
+        Assert.Throws<NotFoundException>(() =>
             _service.GetById(ev.Id));
     }
     
     [Fact]
     public void Delete_ShouldThrow_IfNotFound()
     {
-        Assert.Throws<KeyNotFoundException>(() =>
+        Assert.Throws<NotFoundException>(() =>
             _service.Delete(Guid.NewGuid()));
     }
 

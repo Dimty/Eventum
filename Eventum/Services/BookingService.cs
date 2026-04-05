@@ -1,4 +1,5 @@
-﻿using Eventum.Models;
+﻿using Eventum.Exceptions;
+using Eventum.Models;
 using Eventum.Services.Interfaces;
 
 namespace Eventum.Services;
@@ -30,7 +31,7 @@ public class BookingService(IEventService eventService): IBookingService
         var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
 
         if (booking == null)
-            throw new KeyNotFoundException($"Booking {bookingId} not found");
+            throw new NotFoundException($"Booking {bookingId} not found");
 
         return Task.FromResult(booking);
     }
