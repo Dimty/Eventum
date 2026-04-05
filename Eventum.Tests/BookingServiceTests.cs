@@ -45,4 +45,15 @@ public class BookingServiceTests
         
         Assert.NotEqual(booking1.Id, booking2.Id);
     }
+    
+    [Fact]
+    public async Task GetBookingByIdAsync_ShouldReturnBooking()
+    {
+        var evId = CreateEvent();
+        var booking = await _bookingService.CreateBookingAsync(evId);
+        
+        var result = await _bookingService.GetBookingByIdAsync(booking.Id);
+        
+        Assert.Equal(booking.Id, result.Id);
+    }
 }
