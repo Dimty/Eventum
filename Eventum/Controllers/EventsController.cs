@@ -8,10 +8,12 @@ namespace Eventum.Controllers;
 [ApiController]
 [Route("events")]
 [Produces("application/json")]
-public class EventsController(IEventService eventService) : ControllerBase
+public class EventsController(IEventService eventService,
+    IBookingService bookingService) : ControllerBase
 {
     private readonly IEventService _eventService = eventService;
-
+    private readonly IBookingService _bookingService = bookingService;
+    
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResult<Event>), StatusCodes.Status200OK)]
     public IActionResult Get(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
@@ -88,5 +90,16 @@ public class EventsController(IEventService eventService) : ControllerBase
     {
         _eventService.Delete(id);
         return NoContent();
+    }
+
+    [HttpPost("{id}/book")]
+    [ProducesResponseType(typeof(Booking), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Book(Guid id)
+    {
+        var booking = await _bookingService.CreateBookingAsync(id);
+
+        Response.Headers.Location = $"/bookings/{booking.Id}";
+        return Accepted(booking);
     }
 }
