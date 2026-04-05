@@ -34,4 +34,9 @@ public class BookingService(IEventService eventService): IBookingService
 
         return Task.FromResult(booking);
     }
+    
+    public IEnumerable<Booking> GetPendingBookings()
+    {
+        return _bookings.Where(b => b.Status == BookingStatus.Pending).ToList();
+    }
 }
