@@ -51,7 +51,9 @@ public class EventService : IEventService
 
     public Event Create(Event newEvent)
     {
+        //TODO: remove init logic to Event
         newEvent.Id = Guid.NewGuid();
+        newEvent.AvailableSeats = newEvent.TotalSeats;
         _events.Add(newEvent);
         return newEvent;
     }
