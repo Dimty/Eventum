@@ -36,6 +36,8 @@ public class EventsController(IEventService eventService,
             Title = ev.Title,
             StartAt = ev.StartAt,
             EndAt = ev.EndAt,
+            TotalSeats = ev.TotalSeats,
+            AvailableSeats = ev.AvailableSeats!.Value
         };
 
         return Ok(dto);
@@ -52,6 +54,7 @@ public class EventsController(IEventService eventService,
             Title = createdEvent.Title,
             StartAt = createdEvent.StartAt,
             EndAt = createdEvent.EndAt,
+            TotalSeats = createdEvent.TotalSeats!.Value
         });
 
         var dto = new EventResponseDto
@@ -61,6 +64,8 @@ public class EventsController(IEventService eventService,
             Title = newEvent.Title,
             StartAt = newEvent.StartAt,
             EndAt = newEvent.EndAt,
+            TotalSeats = newEvent.TotalSeats,
+            AvailableSeats = newEvent.AvailableSeats!.Value
         };
 
         return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
