@@ -17,11 +17,10 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
             var bookingService = scope.ServiceProvider.GetRequiredService<IBookingProcessingService>();
             var pending = bookingService!.GetPendingBookings();
 
-            foreach (var booking in pending)
-            {
-                await bookingService.ProcessBookingAsync(booking, stoppingToken);
-            }
-            
+            var tasks = pending.Select(b => bookingService.ProcessBookingAsync(b, stoppingToken));
+
+            await Task.WhenAll(tasks);
+
             await Task.Delay(1000, stoppingToken);
         }
     }
