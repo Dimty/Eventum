@@ -153,4 +153,21 @@ public class BookingServiceTests
         Assert.NotNull(booking.ProcessedAt);
     }
     
+    [Fact]
+    public void BookingReject_ShouldSetStatusAndProcessedAt()
+    {
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        booking.Reject();
+
+        Assert.Equal(BookingStatus.Rejected, booking.Status);
+        Assert.NotNull(booking.ProcessedAt);
+    }
+    
 }
