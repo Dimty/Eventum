@@ -170,4 +170,17 @@ public class BookingServiceTests
         Assert.NotNull(booking.ProcessedAt);
     }
     
+    [Fact]
+    public async Task Reject_ShouldReleaseSeats()
+    {
+        var guid = CreateEvent(1);
+        var ev = _eventService.GetById(guid);
+        var booking = await _bookingService.CreateBookingAsync(guid);
+
+        booking.Reject();
+        ev.ReleaseSeats();
+
+        Assert.Equal(1, ev.AvailableSeats);
+    }
+    
 }
