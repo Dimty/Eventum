@@ -118,4 +118,11 @@ public class BookingServiceTests
         Assert.Equal(0, updated.AvailableSeats);
     }
     
+    [Fact]
+    public async Task CreateBooking_WhenEventNotFound_ShouldThrow()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _bookingService.CreateBookingAsync(Guid.NewGuid()));
+    }
+    
 }
