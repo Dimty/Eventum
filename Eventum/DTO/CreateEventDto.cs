@@ -22,5 +22,8 @@ public class CreateEventDto: IValidatableObject
                 "EndAt must be later than StartAt",
                 new[] { nameof(EndAt) });
         }
+        
+        if (TotalSeats <= 0)
+            throw new ValidationException("TotalSeats must be greater than zero");
     }
 }
