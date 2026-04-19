@@ -125,4 +125,15 @@ public class BookingServiceTests
             _bookingService.CreateBookingAsync(Guid.NewGuid()));
     }
     
+    [Fact]
+    public async Task CreateBooking_WhenNoSeats_ShouldThrowNoAvailableSeats()
+    {
+        var ev = CreateEvent(1);
+
+        await _bookingService.CreateBookingAsync(ev);
+
+        await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
+            _bookingService.CreateBookingAsync(ev));
+    }
+    
 }
