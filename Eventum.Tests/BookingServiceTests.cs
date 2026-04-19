@@ -101,5 +101,21 @@ public class BookingServiceTests
         Assert.Equal(4, updated.AvailableSeats);
     }
 
+    [Fact]
+    public async Task CreateBookings_UntilLimit_ShouldAllSucceed()
+    {
+        var ev = CreateEvent(3);
+
+        var b1 = await _bookingService.CreateBookingAsync(ev);
+        var b2 = await _bookingService.CreateBookingAsync(ev);
+        var b3 = await _bookingService.CreateBookingAsync(ev);
+
+        Assert.NotEqual(b1.Id, b2.Id);
+        Assert.NotEqual(b2.Id, b3.Id);
+        Assert.NotEqual(b1.Id, b3.Id);
+
+        var updated = _eventService.GetById(ev);
+        Assert.Equal(0, updated.AvailableSeats);
+    }
     
 }
