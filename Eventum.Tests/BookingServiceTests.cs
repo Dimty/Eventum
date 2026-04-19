@@ -90,5 +90,16 @@ public class BookingServiceTests
         Assert.NotNull(result.ProcessedAt);
     }
 
+    [Fact]
+    public async Task CreateBooking_ShouldDecreaseAvailableSeats()
+    {
+        var ev = CreateEvent(5);
+
+        await _bookingService.CreateBookingAsync(ev);
+
+        var updated = _eventService.GetById(ev);
+        Assert.Equal(4, updated.AvailableSeats);
+    }
+
     
 }
