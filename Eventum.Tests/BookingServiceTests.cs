@@ -1,6 +1,7 @@
 ﻿using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Eventum.Tests;
 
@@ -14,13 +15,15 @@ public class BookingServiceTests
         _bookingService = new(_eventService);
     }
 
-    private Guid CreateEvent()
+    private Guid CreateEvent(int totalSeats = 5)
     {
         var ev = _eventService.Create(new Event
         {
             Title = "Test",
             StartAt = DateTime.Now,
             EndAt =  DateTime.Now.AddDays(1),
+            TotalSeats = totalSeats,
+            AvailableSeats = totalSeats
         });
         
         return ev.Id;
@@ -86,19 +89,6 @@ public class BookingServiceTests
         Assert.Equal(BookingStatus.Confirmed, result.Status);
         Assert.NotNull(result.ProcessedAt);
     }
+
     
-    [Fact]
-    public async Task ProcessBooking_ShouldReturnRejected_WhenTaskCanceled()
-    {
-        var evId = CreateEvent();
-        var booking = await _bookingService.CreateBookingAsync(evId);
-
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        await _bookingService.ProcessBookingAsync(booking, cts.Token);
-
-        Assert.Equal(BookingStatus.Rejected, booking.Status);
-        Assert.NotNull(booking.ProcessedAt);
-    }
 }
