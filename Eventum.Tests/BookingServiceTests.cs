@@ -229,4 +229,18 @@ public class BookingServiceTests
         Assert.Equal(0, updated.AvailableSeats);
     }
     
+    [Fact]
+    public async Task ConcurrentBooking_ShouldHaveUniqueIds()
+    {
+        var ev = CreateEvent(10);
+
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => _bookingService.CreateBookingAsync(ev));
+
+        var results = await Task.WhenAll(tasks);
+
+        var ids = results.Select(b => b.Id).ToList();
+
+        Assert.Equal(10, ids.Distinct().Count());
+    }
 }
