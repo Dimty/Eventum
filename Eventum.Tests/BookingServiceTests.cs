@@ -136,4 +136,21 @@ public class BookingServiceTests
             _bookingService.CreateBookingAsync(ev));
     }
     
+    [Fact]
+    public void BookingConfirm_ShouldSetStatusAndProcessedAt()
+    {
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        booking.Confirm();
+
+        Assert.Equal(BookingStatus.Confirmed, booking.Status);
+        Assert.NotNull(booking.ProcessedAt);
+    }
+    
 }
