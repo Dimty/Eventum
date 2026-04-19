@@ -199,4 +199,34 @@ public class BookingServiceTests
         Assert.NotNull(newBooking);
     }
     
+    [Fact]
+    public async Task ConcurrentBooking_ShouldNotOverbook()
+    {
+        var ev = CreateEvent(5);
+
+        var tasks = Enumerable.Range(0, 20)
+            .Select(_ => Task.Run(async () =>
+            {
+                try
+                {
+                    return await _bookingService.CreateBookingAsync(ev);
+                }
+                catch (NoAvailableSeatsException)
+                {
+                    return null;
+                }
+            }));
+
+        var results = await Task.WhenAll(tasks);
+
+        var success = results.Count(r => r != null);
+        var failed = results.Count(r => r == null);
+
+        var updated = _eventService.GetById(ev);
+
+        Assert.Equal(5, success);
+        Assert.Equal(15, failed);
+        Assert.Equal(0, updated.AvailableSeats);
+    }
+    
 }
