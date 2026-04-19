@@ -183,4 +183,20 @@ public class BookingServiceTests
         Assert.Equal(1, ev.AvailableSeats);
     }
     
+    [Fact]
+    public async Task AfterReject_ShouldAllowNewBooking()
+    {
+        var guid = CreateEvent(1);
+        var ev = _eventService.GetById(guid);
+
+        var booking = await _bookingService.CreateBookingAsync(guid);
+
+        booking.Reject();
+        ev.ReleaseSeats();
+
+        var newBooking = await _bookingService.CreateBookingAsync(guid);
+
+        Assert.NotNull(newBooking);
+    }
+    
 }
