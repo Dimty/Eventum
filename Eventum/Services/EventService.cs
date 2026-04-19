@@ -1,4 +1,5 @@
 ﻿using Eventum.DTO;
+using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services.Interfaces;
 
@@ -43,7 +44,7 @@ public class EventService : IEventService
         var ev = _events.FirstOrDefault(e => e.Id == id);
 
         if (ev == null)
-            throw new KeyNotFoundException($"Event with id {id} not found");
+            throw new NotFoundException($"Event with id {id} not found");
 
         return ev;
     }

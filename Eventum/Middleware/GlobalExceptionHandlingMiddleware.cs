@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Eventum.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Eventum.Middleware;
@@ -52,7 +53,7 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         => ex switch
         {
             ValidationException => StatusCodes.Status400BadRequest,
-            KeyNotFoundException => StatusCodes.Status404NotFound,
+            NotFoundException => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status500InternalServerError
         };
 }
