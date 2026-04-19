@@ -54,17 +54,42 @@ public class BookingService(IEventService eventService) : IBookingService, IBook
     {
         try
         {
-            await Task.Delay(_random.Next(1000, 5000), token);
+            await Task.Delay(Random.Shared.Next(1000, 5000), token);
 
-            booking.Status = BookingStatus.Confirmed;
+            await _processingSemaphore.WaitAsync(token);
+
+            try
+            {
+                _eventService.GetById(booking.EventId);
+                booking.Confirm();
+                _bookings[booking.Id] = booking;
+            }
+            finally
+            {
+                _processingSemaphore.Release();
+            }
         }
-        catch
+        catch (OperationCanceledException)
         {
-            booking.Status = BookingStatus.Rejected;
+            Console.WriteLine("Operation canceled");
         }
-        finally
+        catch (Exception)
         {
-            booking.ProcessedAt = DateTime.UtcNow;
+            await _processingSemaphore.WaitAsync(token);
+
+            try
+            {
+                var ev = _eventService.GetById(booking.EventId)!;
+
+                booking.Reject();
+                ev.ReleaseSeats();
+                _eventService.Update(ev.Id, ev);
+                _bookings[booking.Id] = booking;
+            }
+            finally
+            {
+                _processingSemaphore.Release();
+            }
         }
     }
 }
