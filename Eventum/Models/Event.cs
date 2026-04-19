@@ -12,7 +12,7 @@ public class Event
 
     public DateTime EndAt { get; set; }
 
-    public required int TotalSeats { get; set; }
+    public int TotalSeats { get; set; }
 
     public int? AvailableSeats { get; set; }
 
