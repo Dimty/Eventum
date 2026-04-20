@@ -9,9 +9,9 @@ public interface IEventService
 
     Event? GetById(Guid id);
 
-    Event Create(Event newEvent);
+    Event Create(CreateEventDto newEvent);
 
-    bool Update(Guid id, Event updatedEvent);
+    bool Update(Guid id, UpdateEventDto updatedEvent);
 
     bool Delete(Guid id);
 }

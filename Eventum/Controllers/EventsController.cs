@@ -48,14 +48,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Post(CreateEventDto createdEvent)
     {
-        var newEvent = _eventService.Create(new Event
-        {
-            Description = createdEvent.Description,
-            Title = createdEvent.Title,
-            StartAt = createdEvent.StartAt,
-            EndAt = createdEvent.EndAt,
-            TotalSeats = createdEvent.TotalSeats!.Value
-        });
+        var newEvent = _eventService.Create(createdEvent);
 
         var dto = new EventResponseDto
         {
@@ -77,13 +70,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Put(Guid id, UpdateEventDto updatedEvent)
     {
-        var updated = _eventService.Update(id, new Event
-        {
-            Description = updatedEvent.Description,
-            Title = updatedEvent.Title,
-            StartAt = updatedEvent.StartAt,
-            EndAt = updatedEvent.EndAt,
-        });
+        var updated = _eventService.Update(id, updatedEvent);
 
         return NoContent();
     }
