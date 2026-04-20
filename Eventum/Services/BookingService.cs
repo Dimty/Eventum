@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services.Interfaces;
@@ -83,7 +84,12 @@ public class BookingService(IEventService eventService) : IBookingService, IBook
 
                 booking.Reject();
                 ev.ReleaseSeats();
-                _eventService.Update(ev.Id, ev);
+                _eventService.Update(ev.Id, new UpdateEventDto
+                {
+                    Description =  ev.Description,
+                    StartAt =  ev.StartAt,
+                    EndAt = ev.EndAt,
+                });
                 _bookings[booking.Id] = booking;
             }
             finally
