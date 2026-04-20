@@ -235,7 +235,7 @@ public class BookingServiceTests
         var ev = CreateEvent(10);
 
         var tasks = Enumerable.Range(0, 10)
-            .Select(_ => _bookingService.CreateBookingAsync(ev));
+            .Select(_ => Task.Run(async () => await _bookingService.CreateBookingAsync(ev)));
 
         var results = await Task.WhenAll(tasks);
 
