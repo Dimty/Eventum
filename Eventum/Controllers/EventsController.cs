@@ -27,7 +27,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(Guid id)
     {
-        var ev = _eventService.GetById(id);
+        var ev = _eventService.GetById(id)!;
 
         var dto = new EventResponseDto
         {

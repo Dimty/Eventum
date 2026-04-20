@@ -98,7 +98,7 @@ public class BookingServiceTests
 
         await _bookingService.CreateBookingAsync(ev);
 
-        var updated = _eventService.GetById(ev);
+        var updated = _eventService.GetById(ev)!;
         Assert.Equal(4, updated.AvailableSeats);
     }
 
@@ -115,7 +115,7 @@ public class BookingServiceTests
         Assert.NotEqual(b2.Id, b3.Id);
         Assert.NotEqual(b1.Id, b3.Id);
 
-        var updated = _eventService.GetById(ev);
+        var updated = _eventService.GetById(ev)!;
         Assert.Equal(0, updated.AvailableSeats);
     }
     
@@ -175,7 +175,7 @@ public class BookingServiceTests
     public async Task Reject_ShouldReleaseSeats()
     {
         var guid = CreateEvent(1);
-        var ev = _eventService.GetById(guid);
+        var ev = _eventService.GetById(guid)!;
         var booking = await _bookingService.CreateBookingAsync(guid);
 
         booking.Reject();
@@ -188,7 +188,7 @@ public class BookingServiceTests
     public async Task AfterReject_ShouldAllowNewBooking()
     {
         var guid = CreateEvent(1);
-        var ev = _eventService.GetById(guid);
+        var ev = _eventService.GetById(guid)!;
 
         var booking = await _bookingService.CreateBookingAsync(guid);
 
@@ -223,7 +223,7 @@ public class BookingServiceTests
         var success = results.Count(r => r != null);
         var failed = results.Count(r => r == null);
 
-        var updated = _eventService.GetById(ev);
+        var updated = _eventService.GetById(ev)!;
 
         Assert.Equal(5, success);
         Assert.Equal(15, failed);
