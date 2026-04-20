@@ -42,6 +42,17 @@ public class Event
         return new Event(title, description, startAt, endAt, totalSeats);
     }
     
+    public void Update(string title, string? description, DateTime startAt, DateTime endAt)
+    {
+        if (startAt >= endAt)
+            throw new ValidationException("Start date must be before end date");
+
+        Title = title;
+        Description = description;
+        StartAt = startAt;
+        EndAt = endAt;
+    }
+    
     public bool TryReserveSeats(int count = 1)
     {
         if (AvailableSeats - count < 0) return false;
