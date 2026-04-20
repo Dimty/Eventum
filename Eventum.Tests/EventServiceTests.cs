@@ -1,4 +1,5 @@
-﻿using Eventum.Exceptions;
+﻿using Eventum.DTO;
+using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services;
 
@@ -8,23 +9,25 @@ public class EventServiceTests
 {
     private readonly EventService _service = new();
 
-    private Event CreateInstance(string title, DateTime startAt, DateTime endAt) =>
-        _service.Create(new Event
+    private Event CreateInstance(string title, DateTime startAt, DateTime endAt, int totalSeats = 3) =>
+        _service.Create(new CreateEventDto()
         {
             Title = title,
             StartAt = startAt,
-            EndAt = endAt
+            EndAt = endAt,
+            TotalSeats = totalSeats
         });
 
     [Fact]
     public void Create_ShouldAddEvent()
     {
-        var ev = new Event
+        var ev = new CreateEventDto
         {
             Title = "Test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now.AddHours(1),
-            Description = "Test description"
+            Description = "Test description",
+            TotalSeats = 3
         };
 
         var result = _service.Create(ev);
@@ -67,7 +70,7 @@ public class EventServiceTests
     {
         var ev = CreateInstance("Old", DateTime.Now, DateTime.Now.AddHours(1));
 
-        _service.Update(ev.Id, new Event
+        _service.Update(ev.Id, new UpdateEventDto()
         {
             Title = "New",
             StartAt = ev.StartAt,
@@ -83,7 +86,7 @@ public class EventServiceTests
     public void Update_ShouldThrow_IfNotFound()
     {
         Assert.Throws<NotFoundException>(() =>
-            _service.Update(Guid.NewGuid(), new Event()));
+            _service.Update(Guid.NewGuid(), new UpdateEventDto()));
     }
     
     [Fact]
@@ -151,7 +154,7 @@ public class EventServiceTests
 
         CreateInstance("Working", now, now.AddHours(1));
         CreateInstance("Party", now.AddDays(5), now.AddDays(6));
-        CreateInstance("Relax on office", now.AddDays(1), now.AddHours(1));
+        CreateInstance("Relax on office", now.AddDays(1), now.AddDays(1));
         CreateInstance("Relax one more time", now, now.AddMonths(1));
 
         var result = _service.GetAll(

@@ -1,4 +1,5 @@
-﻿using Eventum.Exceptions;
+﻿using Eventum.DTO;
+using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services;
 using Microsoft.Extensions.Logging;
@@ -17,13 +18,12 @@ public class BookingServiceTests
 
     private Guid CreateEvent(int totalSeats = 5)
     {
-        var ev = _eventService.Create(new Event
+        var ev = _eventService.Create(new CreateEventDto()
         {
             Title = "Test",
             StartAt = DateTime.Now,
             EndAt =  DateTime.Now.AddDays(1),
             TotalSeats = totalSeats,
-            AvailableSeats = totalSeats
         });
         
         return ev.Id;
