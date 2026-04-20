@@ -7,7 +7,6 @@ namespace Eventum.Background;
 public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory): BackgroundService
 {
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
-    private readonly Random _random = new();
     private const int CustomDelay = 1000;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
