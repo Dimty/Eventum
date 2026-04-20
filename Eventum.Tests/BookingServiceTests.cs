@@ -3,6 +3,7 @@ using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Eventum.Tests;
 
@@ -13,7 +14,7 @@ public class BookingServiceTests
     
     public BookingServiceTests()
     {
-        _bookingService = new(_eventService);
+        _bookingService = new(_eventService, NullLogger<BookingService>.Instance);
     }
 
     private Guid CreateEvent(int totalSeats = 5)
@@ -227,6 +228,19 @@ public class BookingServiceTests
         Assert.Equal(5, success);
         Assert.Equal(15, failed);
         Assert.Equal(0, updated.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task BookingReject_ShouldSetStatus_WhenEventWasDeleted()
+    {
+        var ev = CreateEvent(3);
+        
+        var booking = await _bookingService.CreateBookingAsync(ev);
+        _eventService.Delete(ev);
+        
+        await _bookingService.ProcessBookingAsync(booking, TestContext.Current.CancellationToken);
+        
+        Assert.Equal(BookingStatus.Rejected, booking.Status);
     }
     
     [Fact]
