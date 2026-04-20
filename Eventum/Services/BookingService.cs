@@ -6,13 +6,14 @@ using Eventum.Services.Interfaces;
 
 namespace Eventum.Services;
 
-public class BookingService(IEventService eventService) : IBookingService, IBookingProcessingService
+public class BookingService(IEventService eventService, ILogger<BookingService> logger)
+    : IBookingService, IBookingProcessingService
 {
     private readonly ConcurrentDictionary<Guid, Booking> _bookings = new();
     private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
     private readonly IEventService _eventService = eventService;
     private readonly object _bookingLock = new();
-    
+
     private const int MinDelay = 1000;
     private const int MaxDelay = 5000;
 
@@ -67,6 +68,7 @@ public class BookingService(IEventService eventService) : IBookingService, IBook
                 _eventService.GetById(booking.EventId);
                 booking.Confirm();
                 _bookings[booking.Id] = booking;
+                logger.LogInformation("Booking {BookingId} confirmed for event {EventId}", booking.Id, booking.EventId);
             }
             finally
             {
@@ -75,24 +77,53 @@ public class BookingService(IEventService eventService) : IBookingService, IBook
         }
         catch (OperationCanceledException)
         {
-            Console.WriteLine("Operation canceled");
-        }
-        catch (Exception)
-        {
-            await _processingSemaphore.WaitAsync(token);
+            logger.LogWarning("Operation canceled for booking {BookingId}", booking.Id);
 
+            await _processingSemaphore.WaitAsync(CancellationToken.None);
+            try
+            {
+                booking.Reject();
+                _bookings[booking.Id] = booking;
+            }
+            finally
+            {
+                _processingSemaphore.Release();
+            }
+        }
+        catch (NotFoundException)
+        {
+            logger.LogWarning("Event {EventId} was deleted for booking {BookingId}", booking.EventId, booking.Id);
+        
+            await _processingSemaphore.WaitAsync(CancellationToken.None);
+            try
+            {
+                booking.Reject();
+                _bookings[booking.Id] = booking;
+            }
+            finally
+            {
+                _processingSemaphore.Release();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error processing booking {BookingId}", booking.Id);
+
+            await _processingSemaphore.WaitAsync(CancellationToken.None);
             try
             {
                 var ev = _eventService.GetById(booking.EventId)!;
 
-                booking.Reject();
                 ev.ReleaseSeats();
                 _eventService.Update(ev.Id, new UpdateEventDto
                 {
-                    Description =  ev.Description,
-                    StartAt =  ev.StartAt,
+                    Description = ev.Description,
+                    StartAt = ev.StartAt,
                     EndAt = ev.EndAt,
                 });
+
+
+                booking.Reject();
                 _bookings[booking.Id] = booking;
             }
             finally
