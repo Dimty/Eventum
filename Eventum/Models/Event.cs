@@ -14,7 +14,7 @@ public class Event
 
     public int TotalSeats { get; set; }
 
-    public int? AvailableSeats { get; set; }
+    public int AvailableSeats { get; set; }
 
     public bool TryReserveSeats(int count = 1)
     {

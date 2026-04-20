@@ -37,7 +37,7 @@ public class EventsController(IEventService eventService,
             StartAt = ev.StartAt,
             EndAt = ev.EndAt,
             TotalSeats = ev.TotalSeats,
-            AvailableSeats = ev.AvailableSeats!.Value
+            AvailableSeats = ev.AvailableSeats
         };
 
         return Ok(dto);
@@ -65,7 +65,7 @@ public class EventsController(IEventService eventService,
             StartAt = newEvent.StartAt,
             EndAt = newEvent.EndAt,
             TotalSeats = newEvent.TotalSeats,
-            AvailableSeats = newEvent.AvailableSeats!.Value
+            AvailableSeats = newEvent.AvailableSeats
         };
 
         return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
