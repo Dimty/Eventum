@@ -8,6 +8,7 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
 {
     private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
     private readonly Random _random = new();
+    private const int CustomDelay = 1000;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -21,7 +22,7 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
 
             await Task.WhenAll(tasks);
 
-            await Task.Delay(1000, stoppingToken);
+            await Task.Delay(CustomDelay, stoppingToken);
         }
     }
 }

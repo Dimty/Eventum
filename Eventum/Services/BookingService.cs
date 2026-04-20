@@ -12,6 +12,9 @@ public class BookingService(IEventService eventService) : IBookingService, IBook
     private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
     private readonly IEventService _eventService = eventService;
     private readonly object _bookingLock = new();
+    
+    private const int MinDelay = 1000;
+    private const int MaxDelay = 5000;
 
     private readonly Random _random = new();
 
@@ -55,7 +58,7 @@ public class BookingService(IEventService eventService) : IBookingService, IBook
     {
         try
         {
-            await Task.Delay(Random.Shared.Next(1000, 5000), token);
+            await Task.Delay(Random.Shared.Next(MinDelay, MaxDelay), token);
 
             await _processingSemaphore.WaitAsync(token);
 
