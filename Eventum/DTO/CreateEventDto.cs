@@ -2,7 +2,7 @@
 
 namespace Eventum.DTO;
 
-public class CreateEventDto: IValidatableObject
+public class CreateEventDto
 {
     [Required] public string Title { get; set; } = null!;
 
@@ -14,16 +14,4 @@ public class CreateEventDto: IValidatableObject
     
     [Required] public int? TotalSeats { get; set; }
     
-    public IEnumerable<ValidationResult> Validate(ValidationContext context)
-    {
-        if (StartAt > EndAt)
-        {
-            yield return new ValidationResult(
-                "EndAt must be later than StartAt",
-                new[] { nameof(EndAt) });
-        }
-        
-        if (TotalSeats <= 0)
-            throw new ValidationException("TotalSeats must be greater than zero");
-    }
 }
