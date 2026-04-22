@@ -1,27 +1,27 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Eventum.DTO;
+using Eventum.Exceptions;
+using Eventum.Services;
 
 namespace Eventum.Tests;
 
 public class EventValidationTests
 {
+    private readonly EventService _service = new();
+    
     [Fact]
-    public void Validate_ShouldReturnError_WhenEndAtBeforeStartAt()
+    public void Validate_ShouldThrow_WhenEndAtBeforeStartAt()
     {
-        var dto = new UpdateEventDto
+        var dto = new CreateEventDto
         {
             Title = "Test",
             StartAt = DateTime.Now,
-            EndAt = DateTime.Now.AddHours(-1)
+            EndAt = DateTime.Now.AddHours(-1),
+            TotalSeats = 3
         };
 
-        var context = new ValidationContext(dto);
-        var results = new List<ValidationResult>();
-
-        var isValid = Validator.TryValidateObject(dto, context, results, true);
-
-        Assert.False(isValid);
-        Assert.Contains(results, r => r.ErrorMessage!.Contains("EndAt"));
+        Assert.Throws<ValidationException>(() =>
+            _service.Create(dto));
     }
     
       

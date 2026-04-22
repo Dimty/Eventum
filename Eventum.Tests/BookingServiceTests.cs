@@ -1,6 +1,9 @@
-﻿using Eventum.Exceptions;
+﻿using Eventum.DTO;
+using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Eventum.Tests;
 
@@ -11,16 +14,17 @@ public class BookingServiceTests
     
     public BookingServiceTests()
     {
-        _bookingService = new(_eventService);
+        _bookingService = new(_eventService, NullLogger<BookingService>.Instance);
     }
 
-    private Guid CreateEvent()
+    private Guid CreateEvent(int totalSeats = 5)
     {
-        var ev = _eventService.Create(new Event
+        var ev = _eventService.Create(new CreateEventDto()
         {
             Title = "Test",
             StartAt = DateTime.Now,
             EndAt =  DateTime.Now.AddDays(1),
+            TotalSeats = totalSeats,
         });
         
         return ev.Id;
@@ -86,19 +90,171 @@ public class BookingServiceTests
         Assert.Equal(BookingStatus.Confirmed, result.Status);
         Assert.NotNull(result.ProcessedAt);
     }
+
+    [Fact]
+    public async Task CreateBooking_ShouldDecreaseAvailableSeats()
+    {
+        var ev = CreateEvent(5);
+
+        await _bookingService.CreateBookingAsync(ev);
+
+        var updated = _eventService.GetById(ev)!;
+        Assert.Equal(4, updated.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task CreateBookings_UntilLimit_ShouldAllSucceed()
+    {
+        var ev = CreateEvent(3);
+
+        var b1 = await _bookingService.CreateBookingAsync(ev);
+        var b2 = await _bookingService.CreateBookingAsync(ev);
+        var b3 = await _bookingService.CreateBookingAsync(ev);
+
+        Assert.NotEqual(b1.Id, b2.Id);
+        Assert.NotEqual(b2.Id, b3.Id);
+        Assert.NotEqual(b1.Id, b3.Id);
+
+        var updated = _eventService.GetById(ev)!;
+        Assert.Equal(0, updated.AvailableSeats);
+    }
     
     [Fact]
-    public async Task ProcessBooking_ShouldReturnRejected_WhenTaskCanceled()
+    public async Task CreateBooking_WhenEventNotFound_ShouldThrow()
     {
-        var evId = CreateEvent();
-        var booking = await _bookingService.CreateBookingAsync(evId);
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            _bookingService.CreateBookingAsync(Guid.NewGuid()));
+    }
+    
+    [Fact]
+    public async Task CreateBooking_WhenNoSeats_ShouldThrowNoAvailableSeats()
+    {
+        var ev = CreateEvent(1);
 
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await _bookingService.CreateBookingAsync(ev);
 
-        await _bookingService.ProcessBookingAsync(booking, cts.Token);
+        await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
+            _bookingService.CreateBookingAsync(ev));
+    }
+    
+    [Fact]
+    public void BookingConfirm_ShouldSetStatusAndProcessedAt()
+    {
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        booking.Confirm();
+
+        Assert.Equal(BookingStatus.Confirmed, booking.Status);
+        Assert.NotNull(booking.ProcessedAt);
+    }
+    
+    [Fact]
+    public void BookingReject_ShouldSetStatusAndProcessedAt()
+    {
+        var booking = new Booking
+        {
+            Id = Guid.NewGuid(),
+            EventId = Guid.NewGuid(),
+            Status = BookingStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        booking.Reject();
 
         Assert.Equal(BookingStatus.Rejected, booking.Status);
         Assert.NotNull(booking.ProcessedAt);
+    }
+    
+    [Fact]
+    public async Task Reject_ShouldReleaseSeats()
+    {
+        var guid = CreateEvent(1);
+        var ev = _eventService.GetById(guid)!;
+        var booking = await _bookingService.CreateBookingAsync(guid);
+
+        booking.Reject();
+        ev.ReleaseSeats();
+
+        Assert.Equal(1, ev.AvailableSeats);
+    }
+    
+    [Fact]
+    public async Task AfterReject_ShouldAllowNewBooking()
+    {
+        var guid = CreateEvent(1);
+        var ev = _eventService.GetById(guid)!;
+
+        var booking = await _bookingService.CreateBookingAsync(guid);
+
+        booking.Reject();
+        ev.ReleaseSeats();
+
+        var newBooking = await _bookingService.CreateBookingAsync(guid);
+
+        Assert.NotNull(newBooking);
+    }
+    
+    [Fact]
+    public async Task ConcurrentBooking_ShouldNotOverbook()
+    {
+        var ev = CreateEvent(5);
+
+        var tasks = Enumerable.Range(0, 20)
+            .Select(_ => Task.Run(async () =>
+            {
+                try
+                {
+                    return await _bookingService.CreateBookingAsync(ev);
+                }
+                catch (NoAvailableSeatsException)
+                {
+                    return null;
+                }
+            }));
+
+        var results = await Task.WhenAll(tasks);
+
+        var success = results.Count(r => r != null);
+        var failed = results.Count(r => r == null);
+
+        var updated = _eventService.GetById(ev)!;
+
+        Assert.Equal(5, success);
+        Assert.Equal(15, failed);
+        Assert.Equal(0, updated.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task BookingReject_ShouldSetStatus_WhenEventWasDeleted()
+    {
+        var ev = CreateEvent(3);
+        
+        var booking = await _bookingService.CreateBookingAsync(ev);
+        _eventService.Delete(ev);
+        
+        await _bookingService.ProcessBookingAsync(booking, TestContext.Current.CancellationToken);
+        
+        Assert.Equal(BookingStatus.Rejected, booking.Status);
+    }
+    
+    [Fact]
+    public async Task ConcurrentBooking_ShouldHaveUniqueIds()
+    {
+        var ev = CreateEvent(10);
+
+        var tasks = Enumerable.Range(0, 10)
+            .Select(_ => Task.Run(async () => await _bookingService.CreateBookingAsync(ev)));
+
+        var results = await Task.WhenAll(tasks);
+
+        var ids = results.Select(b => b.Id).ToList();
+
+        Assert.Equal(10, ids.Distinct().Count());
     }
 }

@@ -27,7 +27,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetById(Guid id)
     {
-        var ev = _eventService.GetById(id);
+        var ev = _eventService.GetById(id)!;
 
         var dto = new EventResponseDto
         {
@@ -36,6 +36,8 @@ public class EventsController(IEventService eventService,
             Title = ev.Title,
             StartAt = ev.StartAt,
             EndAt = ev.EndAt,
+            TotalSeats = ev.TotalSeats,
+            AvailableSeats = ev.AvailableSeats
         };
 
         return Ok(dto);
@@ -46,13 +48,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public IActionResult Post(CreateEventDto createdEvent)
     {
-        var newEvent = _eventService.Create(new Event
-        {
-            Description = createdEvent.Description,
-            Title = createdEvent.Title,
-            StartAt = createdEvent.StartAt,
-            EndAt = createdEvent.EndAt,
-        });
+        var newEvent = _eventService.Create(createdEvent);
 
         var dto = new EventResponseDto
         {
@@ -61,6 +57,8 @@ public class EventsController(IEventService eventService,
             Title = newEvent.Title,
             StartAt = newEvent.StartAt,
             EndAt = newEvent.EndAt,
+            TotalSeats = newEvent.TotalSeats,
+            AvailableSeats = newEvent.AvailableSeats
         };
 
         return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
@@ -72,13 +70,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Put(Guid id, UpdateEventDto updatedEvent)
     {
-        var updated = _eventService.Update(id, new Event
-        {
-            Description = updatedEvent.Description,
-            Title = updatedEvent.Title,
-            StartAt = updatedEvent.StartAt,
-            EndAt = updatedEvent.EndAt,
-        });
+        var updated = _eventService.Update(id, updatedEvent);
 
         return NoContent();
     }
@@ -95,6 +87,7 @@ public class EventsController(IEventService eventService,
     [HttpPost("{id}/book")]
     [ProducesResponseType(typeof(Booking), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Book(Guid id)
     {
         var booking = await _bookingService.CreateBookingAsync(id);

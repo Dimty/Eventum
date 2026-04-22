@@ -49,21 +49,18 @@ public class EventService : IEventService
         return ev;
     }
 
-    public Event Create(Event newEvent)
+    public Event Create(CreateEventDto newEvent)
     {
-        newEvent.Id = Guid.NewGuid();
-        _events.Add(newEvent);
-        return newEvent;
+        var ev = Event.Create(newEvent.Title, newEvent.Description, newEvent.StartAt, newEvent.EndAt, newEvent.TotalSeats!.Value);
+        _events.Add(ev);
+        return ev;
     }
 
-    public bool Update(Guid id, Event updatedEvent)
+    public bool Update(Guid id, UpdateEventDto updatedEvent)
     {
         var ev = GetById(id)!;
 
-        ev.Description = updatedEvent.Description;
-        ev.Title = updatedEvent.Title;
-        ev.StartAt = updatedEvent.StartAt;
-        ev.EndAt = updatedEvent.EndAt;
+        ev.Update(updatedEvent.Title, updatedEvent.Description, updatedEvent.StartAt, updatedEvent.EndAt);
 
         return true;
     }

@@ -2,7 +2,7 @@
 
 namespace Eventum.DTO;
 
-public class UpdateEventDto:IValidatableObject
+public class UpdateEventDto
 {
     [Required]
     public string Title { get; set; } = null!;
@@ -15,13 +15,4 @@ public class UpdateEventDto:IValidatableObject
     [Required]
     public DateTime EndAt { get; set; }
     
-    public IEnumerable<ValidationResult> Validate(ValidationContext context)
-    {
-        if (StartAt > EndAt)
-        {
-            yield return new ValidationResult(
-                "EndAt must be later than StartAt",
-                new[] { nameof(EndAt) });
-        }
-    }
 }
