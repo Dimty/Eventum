@@ -14,6 +14,16 @@ public class Booking
 
     public Event Event { get; set; } = null!;
 
+    private Booking() { }
+
+    public Booking(Guid eventId)
+    {
+        Id = Guid.NewGuid();
+        EventId = eventId;
+        CreatedAt = DateTime.UtcNow;
+        Status = BookingStatus.Pending;
+    }
+
     public void Confirm()
     {
         Status = BookingStatus.Confirmed;
