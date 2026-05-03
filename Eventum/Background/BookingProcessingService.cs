@@ -13,11 +13,26 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            using var scope = _serviceScopeFactory.CreateScope();
-            var bookingService = scope.ServiceProvider.GetRequiredService<IBookingProcessingService>();
-            var pending = bookingService!.GetPendingBookings();
+            IEnumerable<Guid> pendingIds;
 
-            var tasks = pending.Select(b => bookingService.ProcessBookingAsync(b, stoppingToken));
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var bookingService = scope.ServiceProvider
+                    .GetRequiredService<IBookingProcessingService>();
+
+                pendingIds = (await bookingService.GetPendingBookingIdsAsync()).ToList();
+            }
+
+            var tasks = pendingIds.Select(id => Task.Run(async () =>
+            {
+                using var innerScope = _serviceScopeFactory.CreateScope();
+
+                var bookingService = innerScope.ServiceProvider
+                    .GetRequiredService<IBookingProcessingService>();
+
+                await bookingService.ProcessBookingAsync(id, stoppingToken);
+
+            }, stoppingToken));
 
             await Task.WhenAll(tasks);
 
