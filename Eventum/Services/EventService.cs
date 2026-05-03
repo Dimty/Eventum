@@ -17,7 +17,8 @@ public class EventService(AppDbContext context) : IEventService
         IQueryable<Event> query = context.Events;
 
         if (!string.IsNullOrWhiteSpace(title))
-            query = query.Where(ev => EF.Functions.ILike(ev.Title, $"%{title}%"));
+            query = query.Where(ev => EF.Functions.Like(ev.Title, $"%{title}%"));
+        
 
         if (from.HasValue)
             query = query.Where(ev => ev.StartAt >= from.Value);
@@ -86,7 +87,8 @@ public class EventService(AppDbContext context) : IEventService
     {
         var ev = await context.Events.FirstOrDefaultAsync(e => e.Id == id);
 
-        if (ev == null) return false;
+        if (ev == null)
+            throw new NotFoundException($"Event with id {id} not found");
 
         context.Events.Remove(ev);
         await context.SaveChangesAsync();
