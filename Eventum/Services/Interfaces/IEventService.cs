@@ -5,13 +5,13 @@ namespace Eventum.Services.Interfaces;
 
 public interface IEventService
 {
-    PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10);
+    Task<PaginatedResult<Event>> GetAllAsync(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10);
 
-    Event? GetById(Guid id);
+    Task<Event?> GetByIdAsync(Guid id);
 
-    Event Create(CreateEventDto newEvent);
+    Task<Event> CreateAsync(CreateEventDto newEvent);
 
-    bool Update(Guid id, UpdateEventDto updatedEvent);
+    Task<bool> UpdateAsync(Guid id, UpdateEventDto updatedEvent);
 
-    bool Delete(Guid id);
+    Task<bool> DeleteAsync(Guid id);
 }
