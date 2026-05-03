@@ -11,7 +11,9 @@ public class Booking
     public required DateTime CreatedAt { get; set; }
     
     public DateTime? ProcessedAt { get; set; }
-    
+
+    public Event Event { get; set; } = null!;
+
     public void Confirm()
     {
         Status = BookingStatus.Confirmed;
