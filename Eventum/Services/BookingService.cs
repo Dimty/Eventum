@@ -1,134 +1,153 @@
 ﻿using System.Collections.Concurrent;
+using Eventum.DataAccess.Contexts;
 using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventum.Services;
 
-public class BookingService(IEventService eventService, ILogger<BookingService> logger)
+public class BookingService(AppDbContext context, ILogger<BookingService> logger)
     : IBookingService, IBookingProcessingService
 {
-    private readonly ConcurrentDictionary<Guid, Booking> _bookings = new();
-    private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
-    private readonly IEventService _eventService = eventService;
-    private readonly object _bookingLock = new();
+    private static readonly SemaphoreSlim ProcessingSemaphore = new(1, 1);
 
     private const int MinDelay = 1000;
     private const int MaxDelay = 5000;
 
-    private readonly Random _random = new();
-
-    public Task<Booking> CreateBookingAsync(Guid eventId)
+    public async Task<Booking> CreateBookingAsync(Guid eventId)
     {
-        lock (_bookingLock)
+        await ProcessingSemaphore.WaitAsync();
+
+        try
         {
-            var ev = _eventService.GetById(eventId)!;
+            var ev = context.Events.FirstOrDefault(ev => ev.Id == eventId);
+
+            if (ev == null)
+                throw new NotFoundException($"Event {eventId} not found");
 
             if (!ev.TryReserveSeats())
                 throw new NoAvailableSeatsException();
 
-            var booking = new Booking
-            {
-                Id = Guid.NewGuid(),
-                EventId = eventId,
-                Status = BookingStatus.Pending,
-                CreatedAt = DateTime.UtcNow
-            };
+            var booking = new Booking(ev.Id);
 
-            _bookings[booking.Id] = booking;
+            await context.Bookings.AddAsync(booking);
+            await context.SaveChangesAsync();
 
-            return Task.FromResult(booking);
+            return booking;
+        }
+        finally
+        {
+            ProcessingSemaphore.Release();
         }
     }
 
-    public Task<Booking> GetBookingByIdAsync(Guid bookingId)
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId)
     {
-        if (!_bookings.TryGetValue(bookingId, out var booking))
+        var booking = await context.Bookings
+            .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+        if (booking == null)
             throw new NotFoundException($"Booking {bookingId} not found");
 
-        return Task.FromResult(booking);
+        return booking;
     }
 
-    public IEnumerable<Booking> GetPendingBookings()
+    public async Task<IEnumerable<Guid>> GetPendingBookingIdsAsync()
     {
-        return _bookings.Values.Where(b => b.Status == BookingStatus.Pending).ToList();
+        return await context.Bookings.Where(b => b.Status == BookingStatus.Pending)
+            .Select(b => b.Id).ToListAsync();
     }
 
-    public async Task ProcessBookingAsync(Booking booking, CancellationToken token)
+    public async Task ProcessBookingAsync(Guid bookingId, CancellationToken token)
     {
         try
         {
             await Task.Delay(Random.Shared.Next(MinDelay, MaxDelay), token);
 
-            await _processingSemaphore.WaitAsync(token);
+            await ProcessingSemaphore.WaitAsync(token);
 
             try
             {
-                _eventService.GetById(booking.EventId);
+                var booking = await GetBookingByIdAsync(bookingId);
+                var ev = context.Events.FirstOrDefault(ev => ev.Id == booking.EventId);
+
+                if (ev == null)
+                    throw new NotFoundException($"Event {booking.EventId} not found");
+
                 booking.Confirm();
-                _bookings[booking.Id] = booking;
+
+                await context.SaveChangesAsync(token);
+
                 logger.LogInformation("Booking {BookingId} confirmed for event {EventId}", booking.Id, booking.EventId);
             }
             finally
             {
-                _processingSemaphore.Release();
+                ProcessingSemaphore.Release();
             }
         }
         catch (OperationCanceledException)
         {
-            logger.LogWarning("Operation canceled for booking {BookingId}", booking.Id);
-
-            await _processingSemaphore.WaitAsync(CancellationToken.None);
+            await ProcessingSemaphore.WaitAsync(CancellationToken.None);
             try
             {
+                var booking = await GetBookingByIdAsync(bookingId);
+                var ev = context.Events.FirstOrDefault(ev => ev.Id == booking.EventId);
+
+                if (ev == null)
+                    throw new NotFoundException($"Event {booking.EventId} not found");
+
                 booking.Reject();
-                _bookings[booking.Id] = booking;
+                
+                await context.SaveChangesAsync(token);
+
+                logger.LogWarning("Operation canceled for booking {BookingId}", booking.Id);
             }
             finally
             {
-                _processingSemaphore.Release();
+                ProcessingSemaphore.Release();
             }
         }
         catch (NotFoundException)
         {
-            logger.LogWarning("Event {EventId} was deleted for booking {BookingId}", booking.EventId, booking.Id);
-        
-            await _processingSemaphore.WaitAsync(CancellationToken.None);
+            await ProcessingSemaphore.WaitAsync(CancellationToken.None);
             try
             {
+                var booking = await GetBookingByIdAsync(bookingId);
+
                 booking.Reject();
-                _bookings[booking.Id] = booking;
+
+                await context.SaveChangesAsync(token);
+                
+                logger.LogWarning("Event {EventId} was deleted for booking {BookingId}", booking.EventId, booking.Id);
             }
             finally
             {
-                _processingSemaphore.Release();
+                ProcessingSemaphore.Release();
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing booking {BookingId}", booking.Id);
-
-            await _processingSemaphore.WaitAsync(CancellationToken.None);
+            await ProcessingSemaphore.WaitAsync(CancellationToken.None);
             try
             {
-                var ev = _eventService.GetById(booking.EventId)!;
+                var booking = await GetBookingByIdAsync(bookingId);
+                var ev = context.Events.FirstOrDefault(ev => ev.Id == booking.EventId);
+
+                if (ev == null)
+                    throw new NotFoundException($"Event {booking.EventId} not found");
 
                 ev.ReleaseSeats();
-                _eventService.Update(ev.Id, new UpdateEventDto
-                {
-                    Description = ev.Description,
-                    StartAt = ev.StartAt,
-                    EndAt = ev.EndAt,
-                });
-
-
                 booking.Reject();
-                _bookings[booking.Id] = booking;
+                
+                await context.SaveChangesAsync(token);
+                
+                logger.LogError(ex, "Error processing booking {BookingId}", booking.Id);
             }
             finally
             {
-                _processingSemaphore.Release();
+                ProcessingSemaphore.Release();
             }
         }
     }
