@@ -1,20 +1,23 @@
-﻿using Eventum.DTO;
+﻿using Eventum.DataAccess.Contexts;
+using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Eventum.Services;
 
-public class EventService : IEventService
+public class EventService(AppDbContext context) : IEventService
 {
     private readonly List<Event> _events = new();
 
-    public PaginatedResult<Event> GetAll(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
+    public async Task<PaginatedResult<Event>> GetAllAsync(string? title, DateTime? from, DateTime? to, int page = 1,
+        int pageSize = 10)
     {
-        var query = _events.AsEnumerable();
+        IQueryable<Event> query = context.Events;
 
         if (!string.IsNullOrWhiteSpace(title))
-            query = query.Where(ev => ev.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(ev => EF.Functions.ILike(ev.Title, $"%{title}%"));
 
         if (from.HasValue)
             query = query.Where(ev => ev.StartAt >= from.Value);
@@ -22,13 +25,13 @@ public class EventService : IEventService
         if (to.HasValue)
             query = query.Where(ev => ev.EndAt <= to.Value);
 
-        var total = query.Count();
+        var total = await query.CountAsync();
 
-        var items = query
+        var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
-        
+            .ToListAsync();
+
         return new PaginatedResult<Event>
         {
             TotalCount = total,
@@ -39,9 +42,9 @@ public class EventService : IEventService
         };
     }
 
-    public Event? GetById(Guid id)
+    public async Task<Event?> GetByIdAsync(Guid id)
     {
-        var ev = _events.FirstOrDefault(e => e.Id == id);
+        var ev = await context.Events.FirstOrDefaultAsync(e => e.Id == id);
 
         if (ev == null)
             throw new NotFoundException($"Event with id {id} not found");
@@ -49,26 +52,45 @@ public class EventService : IEventService
         return ev;
     }
 
-    public Event Create(CreateEventDto newEvent)
+    public async Task<Event> CreateAsync(CreateEventDto newEvent)
     {
-        var ev = Event.Create(newEvent.Title, newEvent.Description, newEvent.StartAt, newEvent.EndAt, newEvent.TotalSeats!.Value);
-        _events.Add(ev);
+        var ev = Event.Create(
+            newEvent.Title,
+            newEvent.Description,
+            newEvent.StartAt,
+            newEvent.EndAt,
+            newEvent.TotalSeats!.Value);
+
+        await context.Events.AddAsync(ev);
+        await context.SaveChangesAsync();
+        
         return ev;
     }
 
-    public bool Update(Guid id, UpdateEventDto updatedEvent)
+    public async Task<bool> UpdateAsync(Guid id, UpdateEventDto updatedEvent)
     {
-        var ev = GetById(id)!;
+        var ev = (await GetByIdAsync(id))!;
 
-        ev.Update(updatedEvent.Title, updatedEvent.Description, updatedEvent.StartAt, updatedEvent.EndAt);
+        ev.Update(
+            updatedEvent.Title, 
+            updatedEvent.Description, 
+            updatedEvent.StartAt, 
+            updatedEvent.EndAt);
+        
+        await context.SaveChangesAsync();
 
         return true;
     }
 
-    public bool Delete(Guid id)
+    public async Task<bool> Delete(Guid id)
     {
-        var ev = GetById(id);
+        var ev = await context.Events.FirstOrDefaultAsync(e => e.Id == id);
 
-        return ev is not null && _events.Remove(ev);
+        if (ev == null) return false;
+
+        context.Events.Remove(ev);
+        await context.SaveChangesAsync();
+
+        return true;
     }
 }
