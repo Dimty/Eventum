@@ -27,7 +27,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var ev = await _eventService.GetByIdAsync(id)!;
+        var ev = (await _eventService.GetByIdAsync(id))!;
 
         var dto = new EventResponseDto
         {
@@ -70,7 +70,7 @@ public class EventsController(IEventService eventService,
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> PutAsync(Guid id, UpdateEventDto updatedEvent)
     {
-        var updated = await _eventService.UpdateAsync(id, updatedEvent);
+        await _eventService.UpdateAsync(id, updatedEvent);
 
         return NoContent();
     }
