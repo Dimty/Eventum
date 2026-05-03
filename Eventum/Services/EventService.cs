@@ -82,7 +82,7 @@ public class EventService(AppDbContext context) : IEventService
         return true;
     }
 
-    public async Task<bool> Delete(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var ev = await context.Events.FirstOrDefaultAsync(e => e.Id == id);
 
