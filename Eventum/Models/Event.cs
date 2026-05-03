@@ -17,6 +17,8 @@ public class Event
     public int TotalSeats { get; set; }
 
     public int AvailableSeats { get; set; }
+    
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
     private Event() { }
 
