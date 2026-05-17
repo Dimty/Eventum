@@ -116,4 +116,20 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
 
         Assert.Empty(result);
     }
+    
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnBooking_WhenExists()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+       
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        var existingBooking = await context.Bookings.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var result = await repo.GetByIdAsync(existingBooking.Id, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal(existingBooking.Id, result.Id);
+    }   
 }
