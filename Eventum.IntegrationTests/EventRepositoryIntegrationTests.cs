@@ -208,7 +208,8 @@ public class EventRepositoryIntegrationTests : IAsyncLifetime
         await repo.DeleteAsync(existingEvent, TestContext.Current.CancellationToken);
         await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
         
-        var deletedEvent = await context.Events.FindAsync([existingEvent.Id], TestContext.Current.CancellationToken);
+        var newContext = CreateContext();
+        var deletedEvent = await newContext.Events.FindAsync([existingEvent.Id], TestContext.Current.CancellationToken);
         Assert.Null(deletedEvent);
     }
     
