@@ -8,14 +8,34 @@ public class BookingConfiguration:IEntityTypeConfiguration<Booking>
 {
     public void Configure(EntityTypeBuilder<Booking> builder)
     {
-        builder.HasKey(x => x.Id);
-        builder.Property(x => x.Id).ValueGeneratedNever();
-        
-        builder.Property(x => x.Status)
-            .HasConversion<string>();
+        builder.ToTable("bookings");
+
+        builder.HasKey(b => b.Id);
+
+        builder.Property(b => b.Id)
+            .HasColumnName("id")
+            .ValueGeneratedNever();
+
+        builder.Property(b => b.EventId)
+            .HasColumnName("event_id")
+            .IsRequired();
+
+        builder.Property(b => b.Status)
+            .HasColumnName("status")
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.Property(b => b.CreatedAt)
+            .HasColumnName("created_at")
+            .IsRequired();
+
+        builder.Property(b => b.ProcessedAt)
+            .HasColumnName("processed_at");
 
         builder.HasOne(b => b.Event)
-            .WithMany(b => b.Bookings)
-            .HasForeignKey(b => b.EventId);
+            .WithMany(e => e.Bookings)
+            .HasForeignKey(b => b.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
