@@ -208,4 +208,22 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
         var totalBookings = await newContext.Bookings.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(7, totalBookings);
     }
+    
+    [Fact]
+    public async Task AddAsync_ShouldNotPersist_WithoutSaveChanges()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        var existingEvent = await context.Events.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var newBooking = new Booking(existingEvent.Id);
+
+        await repo.AddAsync(newBooking, TestContext.Current.CancellationToken);
+
+        var newContext = CreateContext();
+        var bookingInDb = await newContext.Bookings.FindAsync([newBooking.Id], TestContext.Current.CancellationToken);
+        Assert.Null(bookingInDb);
+    }
 }
