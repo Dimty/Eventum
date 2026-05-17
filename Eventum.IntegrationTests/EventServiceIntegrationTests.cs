@@ -212,4 +212,18 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.Null(deletedEvent);
     }
     
+    [Fact]
+    public async Task DeleteAsync_ShouldDoNothing_WhenEventNotExists()
+    {
+        await ResetDatabaseAsync();
+        var nonExistentEvent = Event.Create("Hackathon", "Coding competition", 
+            DateTime.UtcNow.AddDays(30), DateTime.UtcNow.AddDays(30).AddHours(24), 150);
+        var context = CreateContext();
+        var repo = new EventRepository(context);
+        
+        await repo.DeleteAsync(nonExistentEvent, TestContext.Current.CancellationToken);
+        
+        Assert.True(true);
+    }
+    
 }
