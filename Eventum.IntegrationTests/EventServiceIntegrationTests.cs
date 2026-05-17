@@ -150,6 +150,19 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.Single(page3.Items);
     }
     
-    
+    [Fact]
+    public async Task GetAllAsync_ShouldCombineFilters()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+
+        var repo = new EventRepository(CreateContext());
+        
+        var result = await repo.GetAllAsync("o", DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(25), token: TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, result.Items.Count());
+        Assert.All(result.Items, e => 
+            Assert.Contains("o", e.Title, StringComparison.OrdinalIgnoreCase));
+    }
     
 }
