@@ -101,4 +101,18 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(5, result.Count);
     }
     
+    [Fact]
+    public async Task GetAllAsync_ShouldFilterByTitle_WhenTitleProvided()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var repo = new EventRepository(CreateContext());
+        
+        var result = await repo.GetAllAsync("Workshop", token: TestContext.Current.CancellationToken);
+
+        Assert.Single(result.Items);
+        Assert.Equal("Workshop", result.Items.First().Title);
+    }
+    
 }
