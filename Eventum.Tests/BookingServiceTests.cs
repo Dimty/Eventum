@@ -1,4 +1,6 @@
-﻿using Eventum.DataAccess.Contexts;
+﻿using Eventum.Data.Interfaces;
+using Eventum.Data.Repositories;
+using Eventum.DataAccess.Contexts;
 using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Models;
@@ -23,6 +25,9 @@ public class BookingServiceTests
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase(dbName));
+        
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
         
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<BookingService>();

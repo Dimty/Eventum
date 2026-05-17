@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Eventum.Data.Interfaces;
+using Eventum.Data.Repositories;
 using Eventum.DataAccess.Contexts;
 using Eventum.DTO;
 using Eventum.Exceptions;
@@ -22,6 +24,8 @@ public class EventValidationTests
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase(dbName));
 
+        services.AddScoped<IEventRepository, EventRepository>();
+        
         services.AddScoped<IEventService, EventService>();
 
         _provider = services.BuildServiceProvider();
