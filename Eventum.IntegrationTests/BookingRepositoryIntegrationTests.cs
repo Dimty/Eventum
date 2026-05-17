@@ -294,4 +294,25 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
 
         Assert.Null(exception);
     }
+    
+    [Fact]
+    public async Task AddAsync_ShouldAssignNewId_ForEachBooking()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        var existingEvent = await context.Events.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+        var booking1 = new Booking(existingEvent.Id);
+        var booking2 = new Booking(existingEvent.Id);
+
+        await repo.AddAsync(booking1, TestContext.Current.CancellationToken);
+        await repo.AddAsync(booking2, TestContext.Current.CancellationToken);
+        await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotEqual(Guid.Empty, booking1.Id);
+        Assert.NotEqual(Guid.Empty, booking2.Id);
+        Assert.NotEqual(booking1.Id, booking2.Id);
+    }
 }
