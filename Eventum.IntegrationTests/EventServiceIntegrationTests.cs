@@ -165,4 +165,20 @@ public class EventServiceIntegrationTests : IAsyncLifetime
             Assert.Contains("o", e.Title, StringComparison.OrdinalIgnoreCase));
     }
     
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnEvent_WhenEventExists()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+
+        var context = CreateContext();
+        var repo = new EventRepository(context);
+        var existingEvent = await context.Events.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        var result = await repo.GetByIdAsync(existingEvent.Id, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(result);
+        Assert.Equal(existingEvent.Id, result.Id);
+        Assert.Equal(existingEvent.Title, result.Title);
+    }
 }
