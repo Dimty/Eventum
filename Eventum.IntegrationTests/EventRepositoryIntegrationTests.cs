@@ -6,7 +6,7 @@ using Testcontainers.PostgreSql;
 
 namespace Eventum.IntegrationTests;
 
-public class EventServiceIntegrationTests : IAsyncLifetime
+public class EventRepositoryIntegrationTests : IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:16-alpine")
