@@ -1,17 +1,38 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Eventum.DataAccess.Contexts;
 using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Services;
+using Eventum.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Eventum.Tests;
 
 public class EventValidationTests
 {
-    private readonly EventService _service = new();
+    private readonly ServiceProvider _provider;
+
+    public EventValidationTests()
+    {
+        var dbName = Guid.NewGuid().ToString();
+
+        var services = new ServiceCollection();
+
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(dbName));
+
+        services.AddScoped<IEventService, EventService>();
+
+        _provider = services.BuildServiceProvider();
+    }
     
     [Fact]
-    public void Validate_ShouldThrow_WhenEndAtBeforeStartAt()
+    public async Task Validate_ShouldThrow_WhenEndAtBeforeStartAt()
     {
+        using var scope = _provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
+
         var dto = new CreateEventDto
         {
             Title = "Test",
@@ -20,8 +41,8 @@ public class EventValidationTests
             TotalSeats = 3
         };
 
-        Assert.Throws<ValidationException>(() =>
-            _service.Create(dto));
+        await Assert.ThrowsAsync<ValidationException>(async () =>
+           await service.CreateAsync(dto));
     }
     
       

@@ -4,6 +4,6 @@ namespace Eventum.Services.Interfaces;
 
 public interface IBookingProcessingService
 {
-    Task ProcessBookingAsync(Booking booking, CancellationToken token);
-    IEnumerable<Booking> GetPendingBookings();
+    Task ProcessBookingAsync(Guid booking, CancellationToken token);
+    Task<IEnumerable<Guid>> GetPendingBookingIdsAsync();
 }

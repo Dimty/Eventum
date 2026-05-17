@@ -2,6 +2,40 @@
 
 Простой Web API сервис для управления событиями.
 
+## Требования
+
+Перед запуском проекта убедитесь, что выполнены следующие условия:
+
+- установлен PostgreSQL **или** установлен Docker
+- запущен сервер базы данных
+- база данных доступна по указанному хосту и порту (по умолчанию `localhost:5432`)
+
+---
+
+## Поднятие окружения (PostgreSQL через Docker)
+
+Проект поддерживает запуск PostgreSQL через `docker-compose`.
+
+### 1. Запуск контейнера
+
+В корне проекта выполните:
+
+```bash
+docker-compose up -d
+```
+
+## Настройка подключения к БД
+
+Строка подключения задаётся в файле `appsettings.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=eventapi;Username=postgres;Password=postgres"
+  }
+}
+```
+
 ## Запуск
 Все команды выполняются из корневого каталога проекта:
 
@@ -18,10 +52,6 @@ dotnet run --project Eventum/Eventum.csproj
 dotnet test
 ```
 # Документация API
-
-Базовый путь: `/events`
-
-Использует DTO для запросов (`CreateEventDto`, `UpdateEventDto`) и DTO для ответов (`EventResponseDto`, `PaginatedResult`).
 
 ---
 
