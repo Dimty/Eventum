@@ -288,7 +288,7 @@ public class BookingServiceTests
     }
 
     [Fact]
-    public async Task BookingReject_ShouldSetStatus_WhenEventWasDeleted()
+    public async Task RemoveBooking_WhenEventWasDeleted_ShouldThrowNotFoundException()
     {
         using var scope = _provider.CreateScope();
         var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
@@ -300,9 +300,7 @@ public class BookingServiceTests
         
         await eventService.DeleteAsync(ev);
         
-        await bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken);
-        
-        Assert.Equal(BookingStatus.Rejected, booking.Status);
+        await Assert.ThrowsAsync<NotFoundException>(() => bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken));
     }
     
     [Fact]
