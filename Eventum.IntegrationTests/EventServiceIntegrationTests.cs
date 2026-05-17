@@ -115,4 +115,20 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.Equal("Workshop", result.Items.First().Title);
     }
     
+    [Fact]
+    public async Task GetAllAsync_ShouldFilterByDateRange()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var from = DateTime.UtcNow.AddDays(8);
+        var to = DateTime.UtcNow.AddDays(22);
+        var repo = new EventRepository(CreateContext());
+        
+        var result = await repo.GetAllAsync(null, from, to, token: TestContext.Current.CancellationToken);
+
+        Assert.Equal(3, result.Items.Count());
+        Assert.All(result.Items, e => 
+            Assert.True(e.StartAt >= from && e.StartAt <= to));
+    }
 }
