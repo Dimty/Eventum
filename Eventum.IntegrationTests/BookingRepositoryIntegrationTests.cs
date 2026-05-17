@@ -132,4 +132,18 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(existingBooking.Id, result.Id);
     }   
+    
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnNull_WhenNotExists()
+    {
+        await ResetDatabaseAsync();
+        
+        var nonExistentId = Guid.NewGuid();
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        
+        var result = await repo.GetByIdAsync(nonExistentId, TestContext.Current.CancellationToken);
+
+        Assert.Null(result);
+    }
 }
