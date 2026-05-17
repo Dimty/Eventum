@@ -195,4 +195,21 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         
         Assert.Null(ev);
     }
+    
+    [Fact]
+    public async Task DeleteAsync_ShouldDeleteEvent_WhenEventExists()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        var context = CreateContext();
+        var repo = new EventRepository(context);
+        var existingEvent = await context.Events.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+
+        await repo.DeleteAsync(existingEvent, TestContext.Current.CancellationToken);
+        await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
+        
+        var deletedEvent = await context.Events.FindAsync([existingEvent.Id], TestContext.Current.CancellationToken);
+        Assert.Null(deletedEvent);
+    }
+    
 }
