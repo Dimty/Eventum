@@ -61,4 +61,31 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         await context.SaveChangesAsync();
     }
 
+    [Fact]
+    public async Task CreateAsync_ShouldCreateEvent()
+    {
+        await ResetDatabaseAsync();
+        var context = CreateContext();
+        var repo = new EventRepository(context);
+        var newEvent = Event.Create(
+            "New Event",
+            "Test Description",
+            DateTime.UtcNow.AddDays(7),
+            DateTime.UtcNow.AddDays(7).AddHours(4),
+            50
+        );
+
+        
+        await repo.AddAsync(newEvent, TestContext.Current.CancellationToken);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        
+        var ev = await repo.GetAllAsync(token: TestContext.Current.CancellationToken);
+        
+        Assert.NotNull(ev);
+        Assert.NotEqual(Guid.Empty, ev.Items.First().Id);
+        Assert.Equal(newEvent.Title, ev.Items.First().Title);
+        Assert.Equal(newEvent.Description, ev.Items.First().Description);
+        Assert.Equal(newEvent.TotalSeats, ev.Items.First().TotalSeats);
+    }
+    
 }
