@@ -4,7 +4,7 @@ public class Booking
 {
     public Guid Id { get; init; }
     
-    public Guid? EventId { get; set; }
+    public Guid EventId { get; set; }
     
     public BookingStatus Status { get; set; }
     
