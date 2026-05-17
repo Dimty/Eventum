@@ -181,4 +181,18 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(existingEvent.Id, result.Id);
         Assert.Equal(existingEvent.Title, result.Title);
     }
+    
+    [Fact]
+    public async Task GetByIdAsync_ShouldReturnNull_WhenEventNotExists()
+    {
+        await ResetDatabaseAsync();
+        var nonExistentId = Guid.NewGuid();
+
+        var context = CreateContext();
+        var repo = new EventRepository(context);
+
+        var ev = await repo.GetByIdAsync(nonExistentId, TestContext.Current.CancellationToken);
+        
+        Assert.Null(ev);
+    }
 }
