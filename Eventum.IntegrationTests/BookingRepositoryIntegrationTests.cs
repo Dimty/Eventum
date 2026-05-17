@@ -245,4 +245,26 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
         var savedBooking = await newContext.Bookings.FindAsync([newBooking.Id], TestContext.Current.CancellationToken);
         Assert.NotNull(savedBooking);
     }
+    
+    [Fact]
+    public async Task SaveChangesAsync_ShouldHandleMultipleOperations()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        var existingEvent = await context.Events.FirstAsync(cancellationToken: TestContext.Current.CancellationToken);
+        
+        var booking1 = new Booking(existingEvent.Id);
+        var booking2 = new Booking(existingEvent.Id);
+        await repo.AddAsync(booking1, TestContext.Current.CancellationToken);
+        await repo.AddAsync(booking2, TestContext.Current.CancellationToken);
+        
+        await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var newContext = CreateContext();
+        var allBookings = await newContext.Bookings.CountAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(6, allBookings); 
+    }
 }
