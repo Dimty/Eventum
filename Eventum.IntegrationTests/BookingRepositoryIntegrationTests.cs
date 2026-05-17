@@ -8,9 +8,7 @@ namespace Eventum.IntegrationTests;
 
 public class BookingRepositoryIntegrationTests: IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
-        .Build();
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine").Build();
 
     public async ValueTask InitializeAsync()
     {
