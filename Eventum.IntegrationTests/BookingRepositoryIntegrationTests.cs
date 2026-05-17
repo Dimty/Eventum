@@ -85,4 +85,20 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
             Assert.NotEqual(Guid.Empty, booking);
         });
     }
+    
+    [Fact]
+    public async Task FindWithProjectionAsync_ShouldFilterByEventId()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        var targetEvent = await context.Events.FirstAsync(e => e.Title == "Conference 2024", cancellationToken: TestContext.Current.CancellationToken);
+
+        var result = await repo.FindWithProjectionAsync(b => b.EventId == targetEvent.Id, b => new { b.Id }
+            , TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, result.Count());
+    }
 }
