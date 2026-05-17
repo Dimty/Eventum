@@ -65,5 +65,24 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
         await context.Bookings.AddRangeAsync(bookings);
         await context.SaveChangesAsync();
     }
-   
+    
+    [Fact]
+    public async Task FindWithProjectionAsync_ShouldReturnAllBookings_WhenNoFilter()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        
+        var result = await repo.FindWithProjectionAsync(b => true, b => b.Id 
+            , TestContext.Current.CancellationToken);
+
+        var enumerable = result.ToList();
+        Assert.Equal(4, enumerable.Count());
+        Assert.All(enumerable, booking => 
+        {
+            Assert.NotEqual(Guid.Empty, booking);
+        });
+    }
 }
