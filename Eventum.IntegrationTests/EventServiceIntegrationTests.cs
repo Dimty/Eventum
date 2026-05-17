@@ -131,4 +131,25 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.All(result.Items, e => 
             Assert.True(e.StartAt >= from && e.StartAt <= to));
     }
+    
+    [Fact]
+    public async Task GetAllAsync_ShouldApplyPagination()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+
+        var repo = new EventRepository(CreateContext());
+        
+        var page1 = await repo.GetAllAsync(page: 1, pageSize: 2, token: TestContext.Current.CancellationToken);
+        var page2 = await repo.GetAllAsync(page: 2, pageSize: 2, token: TestContext.Current.CancellationToken);
+        var page3 = await repo.GetAllAsync(page: 3, pageSize: 2, token: TestContext.Current.CancellationToken);
+
+        Assert.Equal(5, page1.TotalCount);
+        Assert.Equal(2, page1.Items.Count());
+        Assert.Equal(2, page2.Items.Count());
+        Assert.Single(page3.Items);
+    }
+    
+    
+    
 }
