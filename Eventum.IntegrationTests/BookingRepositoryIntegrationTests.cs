@@ -101,4 +101,19 @@ public class BookingRepositoryIntegrationTests: IAsyncLifetime
 
         Assert.Equal(2, result.Count());
     }
+    
+    [Fact]
+    public async Task FindWithProjectionAsync_ShouldReturnEmpty_WhenNoMatches()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+
+        var context = CreateContext();
+        var repo = new BookingRepository(context);
+        
+        var result = await repo.FindWithProjectionAsync(b => b.Id == Guid.NewGuid(), b => new { b.Id }
+            , TestContext.Current.CancellationToken);
+
+        Assert.Empty(result);
+    }
 }
