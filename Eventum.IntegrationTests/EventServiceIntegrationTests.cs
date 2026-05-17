@@ -88,4 +88,17 @@ public class EventServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(newEvent.TotalSeats, ev.Items.First().TotalSeats);
     }
     
+    [Fact]
+    public async Task GetAllAsync_ShouldReturnAllEvents_WhenNoFiltersApplied()
+    {
+        await ResetDatabaseAsync();
+        await SeedTestDataAsync();
+        
+        var repo = new EventRepository(CreateContext());
+
+        var result = await repo.GetAllAsync(token: TestContext.Current.CancellationToken);
+
+        Assert.Equal(5, result.Count);
+    }
+    
 }
