@@ -1,4 +1,5 @@
-﻿using Eventum.DataAccess.Contexts;
+﻿using Eventum.Data.Interfaces;
+using Eventum.DataAccess.Contexts;
 using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Models;
@@ -7,50 +8,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Eventum.Services;
 
-public class EventService(AppDbContext context) : IEventService
+public class EventService(IEventRepository eventRepository) : IEventService
 {
-    private readonly List<Event> _events = new();
-
     public async Task<PaginatedResult<Event>> GetAllAsync(string? title, DateTime? from, DateTime? to, int page = 1,
         int pageSize = 10)
     {
-        IQueryable<Event> query = context.Events;
-
-        if (!string.IsNullOrWhiteSpace(title))
-            query = query.Where(ev => EF.Functions.Like(ev.Title, $"%{title}%"));
-        
-
-        if (from.HasValue)
-            query = query.Where(ev => ev.StartAt >= from.Value);
-
-        if (to.HasValue)
-            query = query.Where(ev => ev.EndAt <= to.Value);
-
-        var total = await query.CountAsync();
-
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        return new PaginatedResult<Event>
-        {
-            TotalCount = total,
-            Page = page,
-            PageSize = pageSize,
-            Count = items.Count,
-            Items = items
-        };
+        return await eventRepository.GetAllAsync(title, from, to, page, pageSize);
     }
 
     public async Task<Event?> GetByIdAsync(Guid id)
     {
-        var ev = await context.Events.FirstOrDefaultAsync(e => e.Id == id);
-
-        if (ev == null)
-            throw new NotFoundException($"Event with id {id} not found");
-
-        return ev;
+        var ev = await eventRepository.GetByIdAsync(id);
+        
+        return ev ?? throw new NotFoundException($"Event with id {id} not found");
     }
 
     public async Task<Event> CreateAsync(CreateEventDto newEvent)
@@ -62,8 +32,8 @@ public class EventService(AppDbContext context) : IEventService
             newEvent.EndAt,
             newEvent.TotalSeats!.Value);
 
-        await context.Events.AddAsync(ev);
-        await context.SaveChangesAsync();
+        await eventRepository.AddAsync(ev);
+        await eventRepository.SaveChangesAsync();
         
         return ev;
     }
@@ -78,20 +48,20 @@ public class EventService(AppDbContext context) : IEventService
             updatedEvent.StartAt, 
             updatedEvent.EndAt);
         
-        await context.SaveChangesAsync();
+        await eventRepository.SaveChangesAsync();
 
         return true;
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var ev = await context.Events.FirstOrDefaultAsync(e => e.Id == id);
+        var ev = await eventRepository.GetByIdAsync(id);
 
         if (ev == null)
             throw new NotFoundException($"Event with id {id} not found");
 
-        context.Events.Remove(ev);
-        await context.SaveChangesAsync();
+        await eventRepository.DeleteAsync(ev);
+        await eventRepository.SaveChangesAsync();
 
         return true;
     }
