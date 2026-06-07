@@ -23,7 +23,6 @@
     <ItemGroup>
       <ProjectReference Include="..\Eventum.Application\Eventum.Application.csproj" />
       <ProjectReference Include="..\Eventum.Infrastructure\Eventum.Infrastructure.csproj" />
-      <ProjectReference Include="..\Eventum\Eventum.csproj" />
     </ItemGroup>
 
 </Project>
