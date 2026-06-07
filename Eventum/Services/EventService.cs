@@ -1,10 +1,8 @@
 ﻿using Eventum.Data.Interfaces;
-using Eventum.DataAccess.Contexts;
 using Eventum.DTO;
 using Eventum.Exceptions;
 using Eventum.Models;
 using Eventum.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
 
 namespace Eventum.Services;
 
