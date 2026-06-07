@@ -1,7 +1,7 @@
-using Eventum.Models;
+using Eventum.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Eventum.DataAccess.Contexts;
+namespace Eventum.Infrastructure.Data.Contexts;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
