@@ -1,9 +1,9 @@
-﻿using Eventum.DTO;
-using Eventum.Models;
-using Eventum.Services.Interfaces;
+﻿using Eventum.Application.DTO;
+using Eventum.Application.Interfaces.Services;
+using Eventum.Domain.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Eventum.Controllers;
+namespace Eventum.WebApi.Controllers;
 
 [ApiController]
 [Route("events")]
