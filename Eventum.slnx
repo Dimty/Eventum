@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Eventum.Domain/">
+    <Project Path="Eventum.Domain/Eventum.Domain.csproj" />
+  </Folder>
   <Project Path="Eventum.IntegrationTests/Eventum.IntegrationTests.csproj" />
   <Project Path="Eventum.Tests/Eventum.Tests.csproj" />
   <Project Path="Eventum/Eventum.csproj" />
