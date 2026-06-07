@@ -1,18 +1,16 @@
-﻿using System.Collections.Concurrent;
-using Eventum.Data.Interfaces;
-using Eventum.DataAccess.Contexts;
-using Eventum.DTO;
-using Eventum.Exceptions;
-using Eventum.Models;
-using Eventum.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+﻿using Eventum.Application.Common;
+using Eventum.Application.Exceptions;
+using Eventum.Application.Interfaces.Repositories;
+using Eventum.Application.Interfaces.Services;
+using Eventum.Domain.Exceptions;
+using Eventum.Domain.Models;
 
-namespace Eventum.Services;
+namespace Eventum.Application.Services;
 
 public class BookingService(
     IBookingRepository bookingRepository,
     IEventRepository eventRepository,
-    ILogger<BookingService> logger)
+    IAppLogger<BookingService> logger)
     : IBookingService, IBookingProcessingService
 {
     private static readonly SemaphoreSlim ProcessingSemaphore = new(1, 1);
@@ -29,10 +27,10 @@ public class BookingService(
             var ev = await eventRepository.GetByIdAsync(eventId);
 
             if (ev == null)
-                throw new NotFoundException($"Event {eventId} not found");
+                throw new EntityNotFoundException(nameof(Event), eventId);
 
             if (!ev.TryReserveSeats())
-                throw new NoAvailableSeatsException();
+                throw new NoAvailableSeatsException(ev.Id);
 
             var booking = new Booking(ev.Id);
 
@@ -40,6 +38,14 @@ public class BookingService(
             await bookingRepository.SaveChangesAsync();
 
             return booking;
+        }
+        catch (EntityNotFoundException)
+        {
+            throw new ResourceNotFoundException(nameof(Event), eventId);
+        }
+        catch(NoAvailableSeatsException ex)
+        {
+            throw new BusinessRuleViolationException("No available seats", ex.Message);
         }
         finally
         {
@@ -51,10 +57,7 @@ public class BookingService(
     {
         var booking = await bookingRepository.GetByIdAsync(bookingId);
 
-        if (booking == null)
-            throw new NotFoundException($"Booking {bookingId} not found");
-
-        return booking;
+        return booking ?? throw new ResourceNotFoundException(nameof(Booking), bookingId);
     }
 
     public async Task<IEnumerable<Guid>> GetPendingBookingIdsAsync()
@@ -77,7 +80,7 @@ public class BookingService(
                 var ev = await eventRepository.GetByIdAsync(booking.EventId, token);
 
                 if (ev == null)
-                    throw new NotFoundException($"Event {booking.EventId} not found");
+                    throw new EntityNotFoundException(nameof(Event), booking.EventId);
 
                 booking.Confirm();
 
@@ -99,7 +102,7 @@ public class BookingService(
                 var ev = await eventRepository.GetByIdAsync(booking.EventId, token);
 
                 if (ev == null)
-                    throw new NotFoundException($"Event {booking.EventId} not found");
+                    throw new ResourceNotFoundException(nameof(Event), booking.EventId);
 
                 booking.Reject();
 
@@ -112,7 +115,7 @@ public class BookingService(
                 ProcessingSemaphore.Release();
             }
         }
-        catch (NotFoundException)
+        catch (EntityNotFoundException)
         {
             await ProcessingSemaphore.WaitAsync(CancellationToken.None);
             try
@@ -139,7 +142,7 @@ public class BookingService(
                 var ev = await eventRepository.GetByIdAsync(booking.EventId, token);
 
                 if (ev == null)
-                    throw new NotFoundException($"Event {booking.EventId} not found");
+                    throw new ResourceNotFoundException(nameof(Event), booking.EventId);
 
                 ev.ReleaseSeats();
                 booking.Reject();

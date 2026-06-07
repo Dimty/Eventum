@@ -1,10 +1,11 @@
-﻿using Eventum.Data.Interfaces;
-using Eventum.DTO;
-using Eventum.Exceptions;
-using Eventum.Models;
-using Eventum.Services.Interfaces;
+﻿using Eventum.Application.DTO;
+using Eventum.Application.Exceptions;
+using Eventum.Application.Interfaces.Repositories;
+using Eventum.Application.Interfaces.Services;
+using Eventum.Domain.Exceptions;
+using Eventum.Domain.Models;
 
-namespace Eventum.Services;
+namespace Eventum.Application.Services;
 
 public class EventService(IEventRepository eventRepository) : IEventService
 {
@@ -18,7 +19,7 @@ public class EventService(IEventRepository eventRepository) : IEventService
     {
         var ev = await eventRepository.GetByIdAsync(id);
         
-        return ev ?? throw new NotFoundException($"Event with id {id} not found");
+        return ev ?? throw new ResourceNotFoundException(nameof(Event), id);
     }
 
     public async Task<Event> CreateAsync(CreateEventDto newEvent)
@@ -56,7 +57,7 @@ public class EventService(IEventRepository eventRepository) : IEventService
         var ev = await eventRepository.GetByIdAsync(id);
 
         if (ev == null)
-            throw new NotFoundException($"Event with id {id} not found");
+            throw new ResourceNotFoundException(nameof(Event), id);
 
         await eventRepository.DeleteAsync(ev);
         await eventRepository.SaveChangesAsync();
