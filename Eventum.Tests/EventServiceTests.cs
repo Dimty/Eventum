@@ -1,11 +1,11 @@
-﻿using Eventum.Data.Interfaces;
-using Eventum.Data.Repositories;
-using Eventum.DataAccess.Contexts;
-using Eventum.DTO;
-using Eventum.Exceptions;
-using Eventum.Models;
-using Eventum.Services;
-using Eventum.Services.Interfaces;
+﻿using Eventum.Application.DTO;
+using Eventum.Application.Exceptions;
+using Eventum.Application.Interfaces.Repositories;
+using Eventum.Application.Interfaces.Services;
+using Eventum.Application.Services;
+using Eventum.Domain.Models;
+using Eventum.Infrastructure.Data.Contexts;
+using Eventum.Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -121,7 +121,7 @@ public class EventServiceTests
         var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(async () =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(async () =>
             await service.GetByIdAsync(Guid.NewGuid()));
     }
 
@@ -158,7 +158,7 @@ public class EventServiceTests
         var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
             service.UpdateAsync(Guid.NewGuid(), new UpdateEventDto()));
     }
 
@@ -178,7 +178,7 @@ public class EventServiceTests
         await service.DeleteAsync(ev.Id);
 
         // Assert
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
             service.GetByIdAsync(ev.Id));
     }
 
@@ -190,7 +190,7 @@ public class EventServiceTests
         var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
             service.DeleteAsync(Guid.NewGuid()));
     }
 
