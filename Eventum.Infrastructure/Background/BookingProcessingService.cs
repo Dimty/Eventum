@@ -1,12 +1,11 @@
-﻿using Eventum.Models;
-using Eventum.Services;
-using Eventum.Services.Interfaces;
+﻿using Eventum.Application.Interfaces.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace Eventum.Background;
+namespace Eventum.Infrastructure.Background;
 
 public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory): BackgroundService
 {
-    private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
     private const int CustomDelay = 1000;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -15,7 +14,7 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
         {
             IEnumerable<Guid> pendingIds;
 
-            using (var scope = _serviceScopeFactory.CreateScope())
+            using (var scope = serviceScopeFactory.CreateScope())
             {
                 var bookingService = scope.ServiceProvider
                     .GetRequiredService<IBookingProcessingService>();
@@ -25,7 +24,7 @@ public class BookingProcessingService(IServiceScopeFactory serviceScopeFactory):
 
             var tasks = pendingIds.Select(id => Task.Run(async () =>
             {
-                using var innerScope = _serviceScopeFactory.CreateScope();
+                using var innerScope = serviceScopeFactory.CreateScope();
 
                 var bookingService = innerScope.ServiceProvider
                     .GetRequiredService<IBookingProcessingService>();
