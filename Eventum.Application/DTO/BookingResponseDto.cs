@@ -1,6 +1,6 @@
-using Eventum.Models;
+using Eventum.Domain.Models;
 
-namespace Eventum.DTO;
+namespace Eventum.Application.DTO;
 
 public class BookingResponseDto
 {

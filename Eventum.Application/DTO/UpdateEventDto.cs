@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Eventum.DTO;
+namespace Eventum.Application.DTO;
 
 public class UpdateEventDto
 {

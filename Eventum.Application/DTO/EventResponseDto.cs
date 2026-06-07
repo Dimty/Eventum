@@ -1,4 +1,4 @@
-﻿namespace Eventum.DTO;
+﻿namespace Eventum.Application.DTO;
 
 public class EventResponseDto
 {
