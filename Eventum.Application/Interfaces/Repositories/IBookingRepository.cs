@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
-using Eventum.Models;
+using Eventum.Domain.Models;
 
-namespace Eventum.Data.Interfaces;
+namespace Eventum.Application.Interfaces.Repositories;
 
 public interface IBookingRepository
 {

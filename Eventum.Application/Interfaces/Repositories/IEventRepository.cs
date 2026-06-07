@@ -1,7 +1,7 @@
-using Eventum.DTO;
-using Eventum.Models;
+using Eventum.Application.DTO;
+using Eventum.Domain.Models;
 
-namespace Eventum.Data.Interfaces;
+namespace Eventum.Application.Interfaces.Repositories;
 
 public interface IEventRepository
 {

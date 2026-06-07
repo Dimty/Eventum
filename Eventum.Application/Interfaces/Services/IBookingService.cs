@@ -1,6 +1,6 @@
-﻿using Eventum.Models;
+﻿using Eventum.Domain.Models;
 
-namespace Eventum.Services.Interfaces;
+namespace Eventum.Application.Interfaces.Services;
 
 public interface IBookingService
 {

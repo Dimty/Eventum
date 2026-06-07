@@ -1,7 +1,7 @@
-﻿using Eventum.DTO;
-using Eventum.Models;
+﻿using Eventum.Application.DTO;
+using Eventum.Domain.Models;
 
-namespace Eventum.Services.Interfaces;
+namespace Eventum.Application.Interfaces.Services;
 
 public interface IEventService
 {
