@@ -1,4 +1,4 @@
-﻿namespace Eventum.Models;
+﻿namespace Eventum.Domain.Models;
 
 public class Booking
 {

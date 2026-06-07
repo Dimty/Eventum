@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Eventum.Models;
+namespace Eventum.Domain.Models;
 
 public class Event
 {
