@@ -1,10 +1,10 @@
-using Eventum.Data.Interfaces;
-using Eventum.DataAccess.Contexts;
-using Eventum.DTO;
-using Eventum.Models;
+using Eventum.Application.DTO;
+using Eventum.Application.Interfaces.Repositories;
+using Eventum.Domain.Models;
+using Eventum.Infrastructure.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
 
-namespace Eventum.Data.Repositories;
+namespace Eventum.Infrastructure.Data.Repositories;
 
 public class EventRepository(AppDbContext context) : IEventRepository
 {
