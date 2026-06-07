@@ -12,8 +12,10 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
     [Fact]
     public async Task Database_ShouldHaveRequiredTables_AfterMigration()
     {
+        // Arrange
         await using var context = CreateContext();
 
+        // Act
         var tables = await context.Database
             .SqlQuery<string>($@"
                 SELECT table_name 
@@ -24,6 +26,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
                 ORDER BY table_name")
             .ToListAsync(TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.NotEmpty(tables);
         Assert.Contains("bookings", tables);
         Assert.Contains("events", tables);
@@ -33,8 +36,10 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
     [Fact]
     public async Task Database_ShouldHaveEventsTable_WithExpectedColumns()
     {
+        // Arrange
         await using var context = CreateContext();
 
+        // Act
         var columns = await context.Database
             .SqlQuery<ColumnInfo>($@"
                 SELECT column_name as ColumnName, data_type as DataType, is_nullable as IsNullable
@@ -44,6 +49,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
                 ORDER BY ordinal_position")
             .ToListAsync(TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.NotEmpty(columns);
 
         var requiredColumns = new[] { "id", "title", "description", "start_at", "end_at", "total_seats" };
@@ -59,8 +65,10 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
     [Fact]
     public async Task Database_ShouldHaveBookingsTable_WithExpectedColumns()
     {
+        // Arrange
         await using var context = CreateContext();
 
+        // Act
         var columns = await context.Database
             .SqlQuery<ColumnInfo>($@"
                 SELECT column_name as ColumnName, data_type as DataType, is_nullable as IsNullable
@@ -70,6 +78,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
                 ORDER BY ordinal_position")
             .ToListAsync(TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.NotEmpty(columns);
 
         var requiredColumns = new[] { "id", "event_id", "status", "processed_at", "created_at" };
@@ -86,8 +95,10 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
     [Fact]
     public async Task Database_ShouldHaveForeignKeyConstraint_BetweenBookingsAndEvents()
     {
+        // Arrange
         await using var context = CreateContext();
 
+        // Act
         var constraints = await context.Database
             .SqlQuery<ConstraintInfo>($@"
                 SELECT 
@@ -109,6 +120,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
                     AND ccu.table_name = 'events'")
             .ToListAsync(TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.NotEmpty(constraints);
         Assert.Single(constraints);
 
@@ -119,10 +131,10 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         Assert.Equal("id", fkConstraint.ReferencedColumnName);
     }
 
-
     [Fact]
     public async Task Database_EventTable_ShouldEnforcePrimaryKeyUniqueness_WhenInsertingDuplicateId()
     {
+        // Arrange
         await ResetDatabaseAsync();
 
         var context = CreateContext();
@@ -135,7 +147,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
             DateTime.UtcNow.AddDays(10).AddHours(4),
             100
         );
-
+        
         typeof(Event).GetProperty("Id")?.SetValue(event1, specificId);
 
         context.Events.Add(event1);
@@ -154,6 +166,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         var newContext = CreateContext();
         newContext.Events.Add(event2);
 
+        // Act & Assert
         var exception = await Assert.ThrowsAsync<DbUpdateException>(async () =>
             await newContext.SaveChangesAsync(TestContext.Current.CancellationToken));
 
@@ -164,6 +177,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
     [Fact]
     public async Task Database_BookingTable_ShouldEnforcePrimaryKeyUniqueness_WhenInsertingDuplicateId()
     {
+        // Arrange
         await ResetDatabaseAsync();
 
         var context = CreateContext();
@@ -180,19 +194,18 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         
         var bk1 = new Booking(@event.Id);
-        
         typeof(Booking).GetProperty("Id")?.SetValue(bk1, specificId);
 
         context.Bookings.Add(bk1);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         
         var bk2 = new Booking(@event.Id);
-
         typeof(Booking).GetProperty("Id")?.SetValue(bk2, specificId);
         
         var newContext = CreateContext();
         newContext.Bookings.Add(bk2);
 
+        // Act & Assert
         var exception = await Assert.ThrowsAsync<DbUpdateException>(async () =>
             await newContext.SaveChangesAsync(TestContext.Current.CancellationToken));
 
@@ -203,6 +216,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
     [Fact]
     public async Task Database_ShouldSupportOneToManyRelationship_BetweenEventsAndBookings()
     {
+        // Arrange
         await ResetDatabaseAsync();
 
         var context = CreateContext();
@@ -227,6 +241,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
             new (testEvent.Id)
         };
 
+        // Act
         context.Bookings.AddRange(bookings);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -236,6 +251,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
             .FirstOrDefaultAsync(e => e.Id == testEvent.Id,
                 TestContext.Current.CancellationToken);
 
+        // Assert
         Assert.NotNull(eventWithBookings);
         Assert.NotNull(eventWithBookings.Bookings);
         Assert.Equal(5, eventWithBookings.Bookings.Count);
@@ -245,7 +261,6 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
 
         var bookingIds = eventWithBookings.Bookings.Select(b => b.Id).ToList();
         Assert.All(bookingIds, id => Assert.Contains(bookings, b => b.Id == id));
-        
     }
 
     private class ColumnInfo
