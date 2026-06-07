@@ -1,8 +1,16 @@
 <Solution>
+  <Folder Name="/Eventum.Application/">
+    <Project Path="Eventum.Application/Eventum.Application.csproj" />
+  </Folder>
   <Folder Name="/Eventum.Domain/">
     <Project Path="Eventum.Domain/Eventum.Domain.csproj" />
   </Folder>
+  <Folder Name="/Eventum.Infrastructure/">
+    <Project Path="Eventum.Infrastructure/Eventum.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Eventum.Presentation/">
+    <Project Path="Eventum.WebApi/Eventum.WebApi.csproj" />
+  </Folder>
   <Project Path="Eventum.IntegrationTests/Eventum.IntegrationTests.csproj" />
   <Project Path="Eventum.Tests/Eventum.Tests.csproj" />
-  <Project Path="Eventum/Eventum.csproj" />
 </Solution>
