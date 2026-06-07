@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Eventum.Exceptions;
+using Eventum.Application.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Eventum.Middleware;
+namespace Eventum.WebApi.Middleware;
 
 public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlingMiddleware> logger)
 {
@@ -53,8 +53,8 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         => ex switch
         {
             ValidationException => StatusCodes.Status400BadRequest,
-            NotFoundException => StatusCodes.Status404NotFound,
-            NoAvailableSeatsException => StatusCodes.Status409Conflict,
+            ResourceNotFoundException => StatusCodes.Status404NotFound,
+            BusinessRuleViolationException => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
 }
