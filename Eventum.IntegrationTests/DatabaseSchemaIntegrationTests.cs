@@ -1,6 +1,6 @@
 using Eventum.IntegrationTests.Base;
 using Eventum.IntegrationTests.Fixtures;
-using Eventum.Models;
+using Eventum.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
