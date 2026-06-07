@@ -1,8 +1,8 @@
-using Eventum.Models;
+using Eventum.Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Eventum.DataAccess.Configurations;
+namespace Eventum.Infrastructure.Data.Configurations;
 
 public class BookingConfiguration:IEntityTypeConfiguration<Booking>
 {
