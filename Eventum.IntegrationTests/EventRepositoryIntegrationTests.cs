@@ -1,43 +1,14 @@
 using Eventum.Data.Repositories;
-using Eventum.DataAccess.Contexts;
+using Eventum.IntegrationTests.Base;
+using Eventum.IntegrationTests.Fixtures;
 using Eventum.Models;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
 
 namespace Eventum.IntegrationTests;
 
-public class EventRepositoryIntegrationTests : IAsyncLifetime
+[Collection("Database collection")]
+public class EventRepositoryIntegrationTests(DatabaseCollectionFixture fixture) : DatabaseTestBase(fixture)
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine").Build();
-
-    public async ValueTask InitializeAsync()
-    {
-        await _postgres.StartAsync();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _postgres.DisposeAsync();
-    }
-
-    private AppDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql(_postgres.GetConnectionString())
-            .Options;
-
-        var context = new AppDbContext(options);
-        context.Database.EnsureCreated();
-        return context;
-    }
-
-    private async Task ResetDatabaseAsync()
-    {
-        await using var context = CreateContext();
-        await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE events, bookings RESTART IDENTITY CASCADE");
-    }
-
     private async Task SeedTestDataAsync()
     {
         var context = CreateContext();
