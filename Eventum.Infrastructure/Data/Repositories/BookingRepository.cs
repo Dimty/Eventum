@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Eventum.Application.Interfaces.Repositories;
+using Eventum.Domain.Enums;
 using Eventum.Domain.Models;
 using Eventum.Infrastructure.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,20 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
 
     public async Task AddAsync(Booking ev, CancellationToken token = default)=>
         await context.Bookings.AddAsync(ev, token);
+
+    public async Task<int> GetActiveBookingCountByUserAsync(Guid userId, CancellationToken token = default)
+    {
+        return await context.Bookings
+            .CountAsync(b => b.UserId == userId && b.Status == BookingStatus.Confirmed, token);
+    }
+
+    public async Task<bool> DeleteAsync(Booking booking, CancellationToken token = default)
+    {
+        context.Bookings.Remove(booking);
+        await SaveChangesAsync(token);
+        
+        return true;
+    }
 
     public async Task SaveChangesAsync(CancellationToken token = default)=>
         await context.SaveChangesAsync(token);
