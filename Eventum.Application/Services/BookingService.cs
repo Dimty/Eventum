@@ -80,6 +80,18 @@ public class BookingService(
         return await bookingRepository.FindWithProjectionAsync(
             bk => bk.Status == BookingStatus.Pending, bk => bk.Id );
     }
+    
+    public async Task<bool> DeleteBookingAsync(Guid bookingId, Guid userId)
+    {
+        var booking = await GetBookingByIdAsync(bookingId);
+
+        if(booking.UserId != userId) throw new UnauthorizedAccessException();
+        
+        await bookingRepository.DeleteAsync(booking);
+        await bookingRepository.SaveChangesAsync();
+        return true;
+    }
+
 
     public async Task ProcessBookingAsync(Guid bookingId, CancellationToken token)
     {
