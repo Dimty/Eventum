@@ -1,11 +1,14 @@
-﻿using Eventum.Data.Interfaces;
-using Eventum.Data.Repositories;
-using Eventum.DataAccess.Contexts;
-using Eventum.DTO;
-using Eventum.Exceptions;
-using Eventum.Models;
-using Eventum.Services;
-using Eventum.Services.Interfaces;
+﻿using Eventum.Application.Common;
+using Eventum.Application.DTO;
+using Eventum.Application.Exceptions;
+using Eventum.Application.Interfaces.Repositories;
+using Eventum.Application.Interfaces.Services;
+using Eventum.Application.Services;
+using Eventum.Domain.Exceptions;
+using Eventum.Domain.Models;
+using Eventum.Infrastructure.Data.Contexts;
+using Eventum.Infrastructure.Data.Repositories;
+using Eventum.Tests.Stubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -35,8 +38,7 @@ public class BookingServiceTests
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IBookingProcessingService, BookingService>();
 
-        services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
-        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
+        services.AddSingleton(typeof(IAppLogger<>), typeof(NullAppLogger<>));
         
         _provider = services.BuildServiceProvider();
     }
@@ -111,7 +113,7 @@ public class BookingServiceTests
         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
         
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
            bookingService.GetBookingByIdAsync(Guid.NewGuid()));
     }
     
@@ -123,7 +125,7 @@ public class BookingServiceTests
         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
         
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
             bookingService.CreateBookingAsync(Guid.NewGuid()));
     }
 
@@ -194,7 +196,7 @@ public class BookingServiceTests
         var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
         
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() =>
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
             bookingService.CreateBookingAsync(Guid.NewGuid()));
     }
     
@@ -208,7 +210,7 @@ public class BookingServiceTests
         await bookingService.CreateBookingAsync(ev);
 
         // Act & Assert
-        await Assert.ThrowsAsync<NoAvailableSeatsException>(() =>
+        await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
             bookingService.CreateBookingAsync(ev));
     }
     
@@ -298,7 +300,7 @@ public class BookingServiceTests
                 {
                     return await bookingService.CreateBookingAsync(ev);
                 }
-                catch (NoAvailableSeatsException)
+                catch (BusinessRuleViolationException)
                 {
                     return null;
                 }
@@ -329,7 +331,7 @@ public class BookingServiceTests
         await eventService.DeleteAsync(ev);
         
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() => bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken));
     }
     
     [Fact]

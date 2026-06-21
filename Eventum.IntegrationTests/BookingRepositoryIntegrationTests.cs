@@ -1,7 +1,7 @@
-using Eventum.Data.Repositories;
 using Eventum.IntegrationTests.Base;
 using Eventum.IntegrationTests.Fixtures;
-using Eventum.Models;
+using Eventum.Domain.Models;
+using Eventum.Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace Eventum.IntegrationTests;

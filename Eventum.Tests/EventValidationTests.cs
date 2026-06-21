@@ -1,10 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Eventum.Data.Interfaces;
-using Eventum.Data.Repositories;
-using Eventum.DataAccess.Contexts;
-using Eventum.DTO;
-using Eventum.Services;
-using Eventum.Services.Interfaces;
+using Eventum.Application.DTO;
+using Eventum.Application.Interfaces.Repositories;
+using Eventum.Application.Interfaces.Services;
+using Eventum.Application.Services;
+using Eventum.Infrastructure.Data.Contexts;
+using Eventum.Infrastructure.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 

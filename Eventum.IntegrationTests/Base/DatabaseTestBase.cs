@@ -1,4 +1,4 @@
-using Eventum.DataAccess.Contexts;
+using Eventum.Infrastructure.Data.Contexts;
 using Eventum.IntegrationTests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 
