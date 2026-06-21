@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Eventum.Application.Exceptions;
+using Eventum.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using UnauthorizedAccessException = System.UnauthorizedAccessException;
 
 namespace Eventum.WebApi.Middleware;
 
@@ -53,8 +55,11 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         => ex switch
         {
             ValidationException => StatusCodes.Status400BadRequest,
+            UserAlreadyExistsException => StatusCodes.Status409Conflict,
+            PastEventBookingException => StatusCodes.Status400BadRequest,
             ResourceNotFoundException => StatusCodes.Status404NotFound,
             BusinessRuleViolationException => StatusCodes.Status409Conflict,
+            UnauthorizedAccessException => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError
         };
 }
