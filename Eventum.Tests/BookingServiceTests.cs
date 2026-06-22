@@ -410,6 +410,40 @@ public class BookingServiceTests
         
         // Act & Assert
         await Assert.ThrowsAsync<PastEventBookingException>(() => bookingService.CreateBookingAsync(ev.Id, userId));
+    }
+    
+    [Fact]
+    public async Task CreateBooking_WhenSeatsLimitExceeded_ShouldThrowSeatsLimitExceededException()
+    {
+        // Arrange
+        using var scope = _provider.CreateScope();
+        
+        var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
+        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var  ev  = await eventService.CreateAsync(new CreateEventDto
+        {
+            Title = "Test",
+            StartAt = DateTime.Now.AddDays(1),
+            EndAt = DateTime.Now.AddDays(2),
+            TotalSeats = 12
+        });
+        
+        var userId = Guid.Empty;
+        var bookings = new List<Booking>();
+        
+        // Act
+        foreach (var _ in Enumerable.Range(0, 10))
+        {
+            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, userId));
+        }
+        
+        var tasks = bookings.Select(b => 
+            Task.Run(async () => await bookingService.ProcessBookingAsync(b.Id,  TestContext.Current.CancellationToken)));
 
+        await Task.WhenAll(tasks);
+        
+        // Assert
+        var exception = await Assert.ThrowsAsync<BusinessRuleViolationException>(() => bookingService.CreateBookingAsync(ev.Id, userId));
+        Assert.Equal("No available seats", exception.RuleName);
     }
 }
