@@ -1,3 +1,4 @@
+using Eventum.Domain.Enums;
 using Eventum.IntegrationTests.Base;
 using Eventum.IntegrationTests.Fixtures;
 using Eventum.Domain.Models;
@@ -9,6 +10,21 @@ namespace Eventum.IntegrationTests;
 [Collection("Database collection")]
 public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) : DatabaseTestBase(fixture)
 {
+    private async Task<User> CreateUserAsync(Guid id, string login = "login", string password = "password",
+        UserRole role = UserRole.User)
+    {
+        var context = CreateContext();
+
+        var user = new User(login, password, role);
+
+        typeof(User).GetProperty("Id")?.SetValue(user, id);
+
+        context.Users.Add(user);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return user;
+    }
+
     [Fact]
     public async Task Database_ShouldHaveRequiredTables_AfterMigration()
     {
@@ -147,7 +163,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
             DateTime.UtcNow.AddDays(10).AddHours(4),
             100
         );
-        
+
         typeof(Event).GetProperty("Id")?.SetValue(event1, specificId);
 
         context.Events.Add(event1);
@@ -190,18 +206,21 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
             DateTime.UtcNow.AddDays(10).AddHours(4),
             100
         );
+
+        var user = await CreateUserAsync(Guid.NewGuid());
+        
         context.Events.Add(@event);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        
-        var bk1 = new Booking(@event.Id);
+
+        var bk1 = new Booking(@event.Id, user.Id);
         typeof(Booking).GetProperty("Id")?.SetValue(bk1, specificId);
 
         context.Bookings.Add(bk1);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        
-        var bk2 = new Booking(@event.Id);
+
+        var bk2 = new Booking(@event.Id, user.Id);
         typeof(Booking).GetProperty("Id")?.SetValue(bk2, specificId);
-        
+
         var newContext = CreateContext();
         newContext.Bookings.Add(bk2);
 
@@ -212,7 +231,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         var postgresException = Assert.IsType<PostgresException>(exception.InnerException);
         Assert.Equal("23505", postgresException.SqlState);
     }
-    
+
     [Fact]
     public async Task Database_ShouldSupportOneToManyRelationship_BetweenEventsAndBookings()
     {
@@ -229,16 +248,19 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
             100
         );
 
+        var user = new User("Login", "Password");
+
+        context.Users.Add(user);
         context.Events.Add(testEvent);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var bookings = new List<Booking>
         {
-            new (testEvent.Id),
-            new (testEvent.Id),
-            new (testEvent.Id),
-            new (testEvent.Id),
-            new (testEvent.Id)
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id)
         };
 
         // Act
