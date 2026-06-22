@@ -16,7 +16,8 @@ public class BookingLimitExceededException : DomainException
         MaxAllowedBookings = maxAllowed;
     }
     
-    public BookingLimitExceededException(string message) : base(message)
+    public BookingLimitExceededException(string message, string userId) : base(message)
     {
+        UserId = userId;
     }
 }

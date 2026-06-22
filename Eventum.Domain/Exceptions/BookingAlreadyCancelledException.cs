@@ -9,7 +9,7 @@ public class BookingAlreadyCancelledException:DomainException
     public BookingAlreadyCancelledException(
         Guid bookingId, 
         DateTime cancelledAt, 
-        string newReason = null) 
+        string newReason = null!) 
         : base($"Booking {bookingId} was already cancelled at {cancelledAt:yyyy-MM-dd HH:mm:ss}")
     {
         BookingId = bookingId;
