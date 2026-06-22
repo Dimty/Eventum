@@ -104,4 +104,28 @@ public class UserRepositoryIntegrationTests(DatabaseCollectionFixture fixture) :
         Assert.Equal(user.Login, savedUser.Login);
         Assert.Equal(user.PasswordHash, savedUser.PasswordHash);
     }
+    
+    [Fact]
+    public async Task SaveChangesAsync_ShouldPersistAllChanges()
+    {
+        // Arrange
+        await ResetDatabaseAsync();
+        
+        var context = CreateContext();
+        var repo = new UserRepository(context);
+        
+        var user1 = new User( "userA", "hashA" );
+        var user2 = new User( "userB", "hashB" );
+
+        // Act
+        await repo.AddAsync(user1, TestContext.Current.CancellationToken);
+        await repo.AddAsync(user2, TestContext.Current.CancellationToken);
+        var changesCount = await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(2, changesCount);
+        
+        var users = await context.Users.ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
+        Assert.Equal(2, users.Count);
+    }
 }
