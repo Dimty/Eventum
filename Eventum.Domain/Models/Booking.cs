@@ -1,4 +1,5 @@
 ﻿using Eventum.Domain.Enums;
+using Eventum.Domain.Exceptions;
 
 namespace Eventum.Domain.Models;
 
@@ -45,7 +46,7 @@ public class Booking
     
     public void Cancel()
     {
-        if(Status == BookingStatus.Cancelled) return;
+        if(Status == BookingStatus.Cancelled) throw new BookingAlreadyCancelledException(Id, ProcessedAt ?? DateTime.UtcNow);
         
         Status = BookingStatus.Cancelled;
         ProcessedAt = DateTime.UtcNow;
