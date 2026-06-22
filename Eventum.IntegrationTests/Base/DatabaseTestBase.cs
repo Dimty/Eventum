@@ -22,7 +22,7 @@ public abstract class DatabaseTestBase(DatabaseCollectionFixture fixture) : IAsy
     {
         await using var context = CreateContext();
         await context.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE events, bookings RESTART IDENTITY CASCADE");
+            "TRUNCATE TABLE events, bookings, users RESTART IDENTITY CASCADE");
     }
 
     public async ValueTask InitializeAsync() => await Task.CompletedTask;
