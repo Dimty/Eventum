@@ -208,7 +208,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         );
 
         var user = await CreateUserAsync(Guid.NewGuid());
-        
+
         context.Events.Add(@event);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
@@ -284,7 +284,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         var bookingIds = eventWithBookings.Bookings.Select(b => b.Id).ToList();
         Assert.All(bookingIds, id => Assert.Contains(bookings, b => b.Id == id));
     }
-    
+
     [Fact]
     public async Task Database_UserTable_ShouldEnforcePrimaryKeyUniqueness_WhenInsertingDuplicateId()
     {
@@ -303,7 +303,7 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         var postgresException = Assert.IsType<PostgresException>(exception.InnerException);
         Assert.Equal("23505", postgresException.SqlState);
     }
-    
+
     [Fact]
     public async Task Database_UserTable_ShouldEnforcePrimaryKeyUniqueness_WhenInsertingDuplicateLogin()
     {
@@ -318,6 +318,79 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
 
         var postgresException = Assert.IsType<PostgresException>(exception.InnerException);
         Assert.Equal("23505", postgresException.SqlState);
+    }
+
+    [Fact]
+    public async Task Database_ShouldSupportOneToManyRelationship_BetweenBookingAndUser()
+    {
+        // Arrange
+        await ResetDatabaseAsync();
+
+        var context = CreateContext();
+
+        var testEvent = Event.Create(
+            "Conference 2024",
+            "Big tech conference",
+            DateTime.UtcNow.AddDays(30),
+            DateTime.UtcNow.AddDays(30).AddHours(8),
+            100
+        );
+
+        var user = await CreateUserAsync(Guid.NewGuid(), "Login", "Password");
+
+        context.Events.Add(testEvent);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var bookings = new List<Booking>
+        {
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id),
+            new(testEvent.Id, user.Id)
+        };
+
+        // Act
+        context.Bookings.AddRange(bookings);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var newContext = CreateContext();
+        var eventWithBookings = await newContext.Events
+            .Include(e => e.Bookings)
+            .ThenInclude(b => b.User)
+            .FirstOrDefaultAsync(e => e.Id == testEvent.Id,
+                TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.NotNull(eventWithBookings);
+        Assert.NotNull(eventWithBookings.Bookings);
+        Assert.Equal(5, eventWithBookings.Bookings.Count);
+
+        Assert.All(eventWithBookings.Bookings, booking =>
+            Assert.Equal(testEvent.Id, booking.EventId));
+
+        Assert.All(eventWithBookings.Bookings, booking =>
+            Assert.Equal(user.Id, booking.UserId));
+
+        Assert.All(eventWithBookings.Bookings, booking =>
+            Assert.NotNull(booking.User));
+
+        Assert.All(eventWithBookings.Bookings, booking =>
+        {
+            Assert.NotNull(booking.User);
+            Assert.Equal(user.Id, booking.User.Id);
+            Assert.Equal("Login", booking.User.Login);
+        });
+
+        var uniqueUserIds = eventWithBookings.Bookings
+            .Select(b => b.UserId)
+            .Distinct()
+            .ToList();
+        Assert.Single(uniqueUserIds);
+        Assert.Equal(user.Id, uniqueUserIds.First());
+
+        var bookingIds = eventWithBookings.Bookings.Select(b => b.Id).ToList();
+        Assert.All(bookingIds, id => Assert.Contains(bookings, b => b.Id == id));
     }
 
     private class ColumnInfo
