@@ -446,4 +446,48 @@ public class BookingServiceTests
         var exception = await Assert.ThrowsAsync<BusinessRuleViolationException>(() => bookingService.CreateBookingAsync(ev.Id, userId));
         Assert.Equal("No available seats", exception.RuleName);
     }
+    
+    [Fact]
+    public async Task CreateBooking_WhenBookingDifferentUser_ShouldAllowBooking()
+    {
+        // Arrange
+        using var scope = _provider.CreateScope();
+        
+        var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
+        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+        var  ev  = await eventService.CreateAsync(new CreateEventDto
+        {
+            Title = "Test",
+            StartAt = DateTime.Now.AddDays(1),
+            EndAt = DateTime.Now.AddDays(2),
+            TotalSeats = 21
+        });
+        
+        var fUserId = Guid.NewGuid();
+        var sUserId = Guid.NewGuid();
+        
+        var bookings = new List<Booking>();
+        
+        // Act
+        foreach (var _ in Enumerable.Range(0, 9))
+        {
+            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, fUserId));
+            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, sUserId));
+        }
+        
+        var tasks = bookings.Select(b => 
+            Task.Run(async () => await bookingService.ProcessBookingAsync(b.Id,  TestContext.Current.CancellationToken)));
+
+        await Task.WhenAll(tasks);
+        
+        var exceptionFUser = await Record.ExceptionAsync(
+            () => bookingService.CreateBookingAsync(ev.Id, fUserId));
+        
+        var exceptionSUser = await Record.ExceptionAsync(
+            () => bookingService.CreateBookingAsync(ev.Id, sUserId));
+        
+        // Assert
+        Assert.Null(exceptionFUser);
+        Assert.Null(exceptionSUser);
+    }
 }
