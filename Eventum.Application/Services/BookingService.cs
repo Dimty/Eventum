@@ -92,6 +92,18 @@ public class BookingService(
         return true;
     }
 
+    public async Task<bool> CancelBookingAsync(Guid bookingId, Guid userId)
+    {
+        var booking = await GetBookingByIdAsync(bookingId);
+        
+        if(booking.UserId != userId) throw new UnauthorizedAccessException();
+        
+        booking.Cancel();
+        await bookingRepository.SaveChangesAsync();
+        
+        return true;
+    }
+
 
     public async Task ProcessBookingAsync(Guid bookingId, CancellationToken token)
     {
@@ -108,6 +120,8 @@ public class BookingService(
 
                 if (ev == null)
                     throw new EntityNotFoundException(nameof(Event), booking.EventId);
+
+                if (booking.Status == BookingStatus.Cancelled) booking.Cancel();
 
                 booking.Confirm();
 
@@ -159,6 +173,10 @@ public class BookingService(
             {
                 ProcessingSemaphore.Release();
             }
+        }
+        catch (BookingAlreadyCancelledException)
+        {
+            logger.LogWarning("Booking {BookingId} already cancelled", bookingId);
         }
         catch (Exception ex)
         {
