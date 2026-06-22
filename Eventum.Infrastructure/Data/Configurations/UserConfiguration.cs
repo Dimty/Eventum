@@ -22,10 +22,13 @@ public class UserConfiguration:IEntityTypeConfiguration<User>
         builder.Property(u => u.Id)
             .HasColumnName("id")
             .IsRequired();
-        
+
         builder.Property(u => u.Login)
             .HasColumnName("login")
             .IsRequired();
+        
+        builder.HasIndex(u => u.Login)
+            .IsUnique();
         
         builder.Property(u => u.PasswordHash)
             .HasColumnName("password_hash")
