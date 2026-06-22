@@ -353,4 +353,20 @@ public class BookingServiceTests
         var ids = results.Select(b => b.Id).ToList();
         Assert.Equal(10, ids.Distinct().Count());
     }
+    
+    
+    [Fact]
+    public async Task CancelBooking_WhenBookingAlreadyCancelled_ShouldBookingAlreadyCancelled()
+    {
+        // Arrange
+        using var scope = _provider.CreateScope();
+        var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
+        var ev = await CreateEventAsync(scope, 10);
+        var userId = Guid.Empty;
+        var booking = await bookingService.CreateBookingAsync(ev,userId);
+        await bookingService.CancelBookingAsync(booking.Id, userId);
+        
+        // Act & Assert
+        await Assert.ThrowsAsync<BookingAlreadyCancelledException>(() => bookingService.CancelBookingAsync(booking.Id, userId));
+    }
 }
