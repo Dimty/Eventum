@@ -303,6 +303,22 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         var postgresException = Assert.IsType<PostgresException>(exception.InnerException);
         Assert.Equal("23505", postgresException.SqlState);
     }
+    
+    [Fact]
+    public async Task Database_UserTable_ShouldEnforcePrimaryKeyUniqueness_WhenInsertingDuplicateLogin()
+    {
+        // Arrange
+        await ResetDatabaseAsync();
+
+        await CreateUserAsync(Guid.NewGuid(), "Login", "Password");
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(async () =>
+            await CreateUserAsync(Guid.NewGuid(), "Login", "Password"));
+
+        var postgresException = Assert.IsType<PostgresException>(exception.InnerException);
+        Assert.Equal("23505", postgresException.SqlState);
+    }
 
     private class ColumnInfo
     {
