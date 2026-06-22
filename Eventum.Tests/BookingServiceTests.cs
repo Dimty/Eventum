@@ -369,4 +369,23 @@ public class BookingServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<BookingAlreadyCancelledException>(() => bookingService.CancelBookingAsync(booking.Id, userId));
     }
+    
+    [Fact]
+    public async Task ProcessingBooking_WhenBookingAlreadyCancelled_ShouldBookingAlreadyCancelled()
+    {
+        // Arrange
+        using var scope = _provider.CreateScope();
+        var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
+        var ev = await CreateEventAsync(scope, 10);
+        var userId = Guid.Empty;
+        var booking = await bookingService.CreateBookingAsync(ev,userId);
+        await bookingService.CancelBookingAsync(booking.Id, userId);
+        var time = booking.ProcessedAt;
+        
+        // Act 
+        await bookingService.ProcessBookingAsync(booking.Id, TestContext.Current.CancellationToken);
+        
+        // Assert
+        Assert.Equal(time, booking.ProcessedAt);
+    }
 }
