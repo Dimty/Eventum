@@ -284,6 +284,25 @@ public class DatabaseSchemaIntegrationTests(DatabaseCollectionFixture fixture) :
         var bookingIds = eventWithBookings.Bookings.Select(b => b.Id).ToList();
         Assert.All(bookingIds, id => Assert.Contains(bookings, b => b.Id == id));
     }
+    
+    [Fact]
+    public async Task Database_UserTable_ShouldEnforcePrimaryKeyUniqueness_WhenInsertingDuplicateId()
+    {
+        // Arrange
+        await ResetDatabaseAsync();
+
+        var specificId = Guid.NewGuid();
+
+        await CreateUserAsync(specificId, "Login", "Password");
+
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(async () =>
+            await CreateUserAsync(specificId, "Login1", "Password"));
+
+        var postgresException = Assert.IsType<PostgresException>(exception.InnerException);
+        Assert.Equal("23505", postgresException.SqlState);
+    }
 
     private class ColumnInfo
     {
