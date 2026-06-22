@@ -29,8 +29,8 @@ public class BookingsController(IBookingService bookingService): Controller
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CancelBooking(Guid id)
     {
-        var booking = await _bookingService.GetBookingByIdAsync(id);
-        return Ok(booking);
+        var booking = await _bookingService.CancelBookingAsync(id, User.GetUserId());
+        return Ok();
     }
     
     [Authorize]
