@@ -83,4 +83,25 @@ public class UserRepositoryIntegrationTests(DatabaseCollectionFixture fixture) :
         Assert.Equal(user2.Id, result.Id);
         Assert.Equal("user2", result.Login);
     }
+    
+    [Fact]
+    public async Task AddAsync_ValidUser_ShouldAddToDatabase()
+    {
+        // Arrange
+        await ResetDatabaseAsync();
+
+        var id = Guid.NewGuid();
+        var context = CreateContext();
+        var user = await CreateUserAsync(id);
+        var repo = new UserRepository(context);
+        
+        // Act
+        var result = await repo.GetByLoginAsync("login", TestContext.Current.CancellationToken);
+
+        // Assert
+        var savedUser = await context.Users.FindAsync(new object?[] { id, TestContext.Current.CancellationToken }, TestContext.Current.CancellationToken);
+        Assert.NotNull(savedUser);
+        Assert.Equal(user.Login, savedUser.Login);
+        Assert.Equal(user.PasswordHash, savedUser.PasswordHash);
+    }
 }
