@@ -388,4 +388,28 @@ public class BookingServiceTests
         // Assert
         Assert.Equal(time, booking.ProcessedAt);
     }
+    
+    [Fact]
+    public async Task CreateBooking_WhenEventAlreadyStarted_ShouldPastEventBookingException()
+    {
+        // Arrange
+        using var scope = _provider.CreateScope();
+        
+        var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
+        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+
+        var ev = await eventService.CreateAsync(new CreateEventDto
+        {
+            Title = "Test",
+            StartAt = DateTime.Now.AddDays(-1),
+            EndAt = DateTime.Now.AddDays(1),
+            TotalSeats = 10
+        });
+        
+        var userId = Guid.Empty;
+        
+        // Act & Assert
+        await Assert.ThrowsAsync<PastEventBookingException>(() => bookingService.CreateBookingAsync(ev.Id, userId));
+
+    }
 }
