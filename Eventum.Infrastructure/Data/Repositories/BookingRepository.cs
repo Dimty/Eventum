@@ -19,7 +19,8 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken token = default) =>
         await context.Bookings.FirstOrDefaultAsync(booking => booking.Id == id, token);
 
-    public async Task<Booking?> GetByIdWithUserAndEventAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
+    public async Task<Booking?> GetByIdWithUserAndEventAsync(Guid bookingId,
+        CancellationToken cancellationToken = default) =>
         await context.Bookings
             .Include(b => b.User)
             .Include(b => b.Event)
@@ -31,9 +32,10 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
 
     public async Task<int> GetActiveBookingCountByUserAsync(Guid userId, CancellationToken token = default) =>
         await context.Bookings
-            .CountAsync(b => b.UserId == userId
-                             && b.Status == BookingStatus.Confirmed
-                             || b.Status == BookingStatus.Pending, token);
+            .Where(b => b.UserId == userId)
+            .Where(b => b.Status == BookingStatus.Confirmed
+                        || b.Status == BookingStatus.Pending)
+            .CountAsync(token);
 
 
     public async Task<bool> DeleteAsync(Booking booking, CancellationToken token = default)
