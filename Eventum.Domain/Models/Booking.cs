@@ -48,6 +48,8 @@ public class Booking
     {
         if(Status == BookingStatus.Cancelled) throw new BookingAlreadyCancelledException(Id, ProcessedAt ?? DateTime.UtcNow);
         
+        Event.ReleaseSeats();
+        
         Status = BookingStatus.Cancelled;
         ProcessedAt = DateTime.UtcNow;
     }
