@@ -24,22 +24,12 @@ public class BookingsController(IBookingService bookingService): Controller
     }
     
     [Authorize]
-    [HttpPatch("{id}/cancel", Name = "CancelBookingById")]
-    [ProducesResponseType(typeof(Booking), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CancelBooking(Guid id)
-    {
-        var booking = await _bookingService.CancelBookingAsync(id, User.GetUserId());
-        return Ok();
-    }
-    
-    [Authorize]
-    [HttpDelete("{id}", Name = "DeleteBooking")]
+    [HttpDelete("{id}", Name = "CancelBookingById")]
     [ProducesResponseType(typeof(Booking), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteBooking(Guid id)
     {
-        await _bookingService.DeleteBookingAsync(id, User.GetUserId());
-        return Ok();
+        await _bookingService.CancelBookingAsync(id, User.GetUserId());
+        return NoContent();
     }
 }
