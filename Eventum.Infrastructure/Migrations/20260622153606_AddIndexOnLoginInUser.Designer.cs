@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Eventum.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260517142048_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260622153606_AddIndexOnLoginInUser")]
+    partial class AddIndexOnLoginInUser
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace Eventum.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Eventum.Models.Booking", b =>
+            modelBuilder.Entity("Eventum.Domain.Models.Booking", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -49,14 +49,19 @@ namespace Eventum.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("bookings", (string)null);
                 });
 
-            modelBuilder.Entity("Eventum.Models.Event", b =>
+            modelBuilder.Entity("Eventum.Domain.Models.Event", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
@@ -94,18 +99,54 @@ namespace Eventum.Migrations
                     b.ToTable("events", (string)null);
                 });
 
-            modelBuilder.Entity("Eventum.Models.Booking", b =>
+            modelBuilder.Entity("Eventum.Domain.Models.User", b =>
                 {
-                    b.HasOne("Eventum.Models.Event", "Event")
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Login")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("login");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer")
+                        .HasColumnName("role");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Login")
+                        .IsUnique();
+
+                    b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("Eventum.Domain.Models.Booking", b =>
+                {
+                    b.HasOne("Eventum.Domain.Models.Event", "Event")
                         .WithMany("Bookings")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Eventum.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Event");
+
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Eventum.Models.Event", b =>
+            modelBuilder.Entity("Eventum.Domain.Models.Event", b =>
                 {
                     b.Navigation("Bookings");
                 });

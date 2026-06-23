@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Eventum.Application.Interfaces.Repositories;
+using Eventum.Domain.Enums;
 using Eventum.Domain.Models;
 using Eventum.Infrastructure.Data.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -18,10 +19,33 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken token = default) =>
         await context.Bookings.FirstOrDefaultAsync(booking => booking.Id == id, token);
 
-    public async Task AddAsync(Booking ev, CancellationToken token = default)=>
+    public async Task<Booking?> GetByIdWithUserAndEventAsync(Guid bookingId,
+        CancellationToken cancellationToken = default) =>
+        await context.Bookings
+            .Include(b => b.User)
+            .Include(b => b.Event)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(booking => booking.Id == bookingId, cancellationToken);
+
+    public async Task AddAsync(Booking ev, CancellationToken token = default) =>
         await context.Bookings.AddAsync(ev, token);
 
-    public async Task SaveChangesAsync(CancellationToken token = default)=>
+    public async Task<int> GetActiveBookingCountByUserAsync(Guid userId, CancellationToken token = default) =>
+        await context.Bookings
+            .Where(b => b.UserId == userId)
+            .Where(b => b.Status == BookingStatus.Confirmed
+                        || b.Status == BookingStatus.Pending)
+            .CountAsync(token);
+
+
+    public async Task<bool> DeleteAsync(Booking booking, CancellationToken token = default)
+    {
+        context.Bookings.Remove(booking);
+        await SaveChangesAsync(token);
+
+        return true;
+    }
+
+    public async Task SaveChangesAsync(CancellationToken token = default) =>
         await context.SaveChangesAsync(token);
-    
 }
