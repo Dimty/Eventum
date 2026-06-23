@@ -30,6 +30,7 @@ public class BookingServiceTests
         
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<BookingService>();
@@ -40,6 +41,19 @@ public class BookingServiceTests
         services.AddSingleton(typeof(IAppLogger<>), typeof(NullAppLogger<>));
         
         _provider = services.BuildServiceProvider();
+    }
+    
+    private async Task<User> CreateUserAsync(string login = "login", string password = "password", UserRole role = UserRole.User)
+    {
+        using var scope = _provider.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        
+        var user = new User(login, password, role);
+        
+        await repo.AddAsync(user);
+        await repo.SaveChangesAsync(TestContext.Current.CancellationToken);
+        
+        return user;
     }
 
     private async Task<Guid> CreateEventAsync(IServiceScope scope, int totalSeats = 5)
@@ -362,12 +376,12 @@ public class BookingServiceTests
         using var scope = _provider.CreateScope();
         var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
         var ev = await CreateEventAsync(scope, 10);
-        var userId = Guid.Empty;
-        var booking = await bookingService.CreateBookingAsync(ev,userId);
-        await bookingService.CancelBookingAsync(booking.Id, userId);
+        var user = await  CreateUserAsync();
+        var booking = await bookingService.CreateBookingAsync(ev,user.Id);
+        await bookingService.CancelBookingAsync(booking.Id, user.Id);
         
         // Act & Assert
-        await Assert.ThrowsAsync<BookingAlreadyCancelledException>(() => bookingService.CancelBookingAsync(booking.Id, userId));
+        await Assert.ThrowsAsync<BookingAlreadyCancelledException>(() => bookingService.CancelBookingAsync(booking.Id, user.Id));
     }
     
     [Fact]
@@ -376,10 +390,14 @@ public class BookingServiceTests
         // Arrange
         using var scope = _provider.CreateScope();
         var bookingService = scope.ServiceProvider.GetRequiredService<BookingService>();
+        var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        
         var ev = await CreateEventAsync(scope, 10);
-        var userId = Guid.Empty;
-        var booking = await bookingService.CreateBookingAsync(ev,userId);
-        await bookingService.CancelBookingAsync(booking.Id, userId);
+
+        var user = await CreateUserAsync();
+        
+        var booking = await bookingService.CreateBookingAsync(ev,user.Id);
+        await bookingService.CancelBookingAsync(booking.Id, user.Id);
         var time = booking.ProcessedAt;
         
         // Act 
@@ -463,16 +481,16 @@ public class BookingServiceTests
             TotalSeats = 21
         });
         
-        var fUserId = Guid.NewGuid();
-        var sUserId = Guid.NewGuid();
+        var fUserId = await CreateUserAsync("user1");
+        var sUserId = await CreateUserAsync("user2");
         
         var bookings = new List<Booking>();
         
         // Act
         foreach (var _ in Enumerable.Range(0, 9))
         {
-            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, fUserId));
-            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, sUserId));
+            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, fUserId.Id));
+            bookings.Add(await bookingService.CreateBookingAsync(ev.Id, sUserId.Id));
         }
         
         var tasks = bookings.Select(b => 
@@ -481,10 +499,10 @@ public class BookingServiceTests
         await Task.WhenAll(tasks);
         
         var exceptionFUser = await Record.ExceptionAsync(
-            () => bookingService.CreateBookingAsync(ev.Id, fUserId));
+            () => bookingService.CreateBookingAsync(ev.Id, fUserId.Id));
         
         var exceptionSUser = await Record.ExceptionAsync(
-            () => bookingService.CreateBookingAsync(ev.Id, sUserId));
+            () => bookingService.CreateBookingAsync(ev.Id, sUserId.Id));
         
         // Assert
         Assert.Null(exceptionFUser);
