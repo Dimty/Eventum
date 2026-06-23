@@ -32,7 +32,7 @@ public class BookingService(
             if (ev == null)
                 throw new EntityNotFoundException(nameof(Event), eventId);
 
-            if (ev.StartAt < DateTime.UtcNow)
+            if (ev.StartAt <= DateTime.UtcNow)
                 throw new PastEventBookingException(ev.Id.ToString(), ev.StartAt);
             
             if (!ev.TryReserveSeats())
