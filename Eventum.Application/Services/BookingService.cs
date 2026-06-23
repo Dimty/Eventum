@@ -81,30 +81,19 @@ public class BookingService(
             bk => bk.Status == BookingStatus.Pending, bk => bk.Id );
     }
     
-    public async Task<bool> DeleteBookingAsync(Guid bookingId, Guid userId)
+    public async Task<bool> CancelBookingAsync(Guid bookingId, Guid userId)
     {
-        var booking = await bookingRepository.GetByIdWithUserAsync(bookingId);
+        var booking = await bookingRepository.GetByIdWithUserAndEventAsync(bookingId);
 
         if (booking is null) 
             throw new ResourceNotFoundException(nameof(Booking), bookingId);
         
         if(booking.User!.Role != UserRole.Admin && booking.UserId != userId) throw new UnauthorizedAccessException();
         
-        await bookingRepository.DeleteAsync(booking);
-        await bookingRepository.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<bool> CancelBookingAsync(Guid bookingId, Guid userId)
-    {
-        var booking = await GetBookingByIdAsync(bookingId);
-        
-        if(booking.User.Role != UserRole.Admin && booking.UserId != userId) throw new UnauthorizedAccessException();
-        
         booking.Cancel();
-        await bookingRepository.SaveChangesAsync();
         
-        return true;
+        await bookingRepository.SaveChangesAsync();
+        return true; 
     }
 
 

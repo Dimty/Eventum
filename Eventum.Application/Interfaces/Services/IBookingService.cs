@@ -8,7 +8,5 @@ public interface IBookingService
      
      Task<Booking> GetBookingByIdAsync(Guid bookingId);
      
-     Task<bool> DeleteBookingAsync(Guid bookingId, Guid userId);
-     
      Task<bool> CancelBookingAsync(Guid bookingId, Guid userId);
 }
