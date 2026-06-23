@@ -34,11 +34,9 @@
 - **Требуют роль USER и выше**:
     - `GET /bookings/{id}` — получение бронирования 
     - `POST /events/{id}/book` - бронирование
-    - `PATCH /bookings/{id}/cancel` — создание и управление своими записями
-    - `DELETE /bookings/{id}` — редактирование только своих записей
+    - `DELETE /bookings/{id}` — отмена бронирования
 
 - **Требуют роль ADMIN**:
-    - `GET /api/admin/**` — административные функции
     - `POST /events` - создание события
     - `PUT /events/{id}` - изменение события
     - `DELETE /events/{id}` - удаление события
