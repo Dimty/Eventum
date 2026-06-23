@@ -48,6 +48,9 @@ public class Booking
     {
         if(Status == BookingStatus.Cancelled) throw new BookingAlreadyCancelledException(Id, ProcessedAt ?? DateTime.UtcNow);
         
+        if (Event == null)
+            throw new InvalidOperationException("Event must be loaded before cancelling booking");
+        
         Event.ReleaseSeats();
         
         Status = BookingStatus.Cancelled;
