@@ -57,7 +57,7 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         {
             ValidationException => StatusCodes.Status400BadRequest,
             InvalidCredentialException => StatusCodes.Status404NotFound,
-            UserAlreadyExistsException => StatusCodes.Status409Conflict,
+            UserAlreadyExistsException => StatusCodes.Status400BadRequest,
             PastEventBookingException => StatusCodes.Status400BadRequest,
             ResourceNotFoundException => StatusCodes.Status404NotFound,
             BusinessRuleViolationException => StatusCodes.Status409Conflict,
