@@ -11,7 +11,7 @@ public interface IBookingRepository
         CancellationToken token = default);
     Task<Booking?> GetByIdAsync(Guid id, CancellationToken token = default);
     
-    Task<Booking?> GetByIdWithUserAsync(Guid bookingId, CancellationToken cancellationToken = default);
+    Task<Booking?> GetByIdWithUserAndEventAsync(Guid bookingId, CancellationToken cancellationToken = default);
 
     Task AddAsync(Booking ev, CancellationToken token = default);
     

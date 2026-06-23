@@ -19,9 +19,10 @@ public class BookingRepository(AppDbContext context) : IBookingRepository
     public async Task<Booking?> GetByIdAsync(Guid id, CancellationToken token = default) =>
         await context.Bookings.FirstOrDefaultAsync(booking => booking.Id == id, token);
 
-    public async Task<Booking?> GetByIdWithUserAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
+    public async Task<Booking?> GetByIdWithUserAndEventAsync(Guid bookingId, CancellationToken cancellationToken = default) =>
         await context.Bookings
             .Include(b => b.User)
+            .Include(b => b.Event)
             .AsSplitQuery()
             .FirstOrDefaultAsync(booking => booking.Id == bookingId, cancellationToken);
 
