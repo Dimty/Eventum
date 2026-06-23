@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Authentication;
 using Eventum.Application.Exceptions;
 using Eventum.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
@@ -55,6 +56,7 @@ public class GlobalExceptionHandlingMiddleware(RequestDelegate next, ILogger<Glo
         => ex switch
         {
             ValidationException => StatusCodes.Status400BadRequest,
+            InvalidCredentialException => StatusCodes.Status404NotFound,
             UserAlreadyExistsException => StatusCodes.Status409Conflict,
             PastEventBookingException => StatusCodes.Status400BadRequest,
             ResourceNotFoundException => StatusCodes.Status404NotFound,
