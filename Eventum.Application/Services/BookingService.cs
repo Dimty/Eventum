@@ -83,9 +83,12 @@ public class BookingService(
     
     public async Task<bool> DeleteBookingAsync(Guid bookingId, Guid userId)
     {
-        var booking = await GetBookingByIdAsync(bookingId);
+        var booking = await bookingRepository.GetByIdWithUserAsync(bookingId);
 
-        if(booking.UserId != userId) throw new UnauthorizedAccessException();
+        if (booking is null) 
+            throw new ResourceNotFoundException(nameof(Booking), bookingId);
+        
+        if(booking.User!.Role != UserRole.Admin && booking.UserId != userId) throw new UnauthorizedAccessException();
         
         await bookingRepository.DeleteAsync(booking);
         await bookingRepository.SaveChangesAsync();
@@ -96,7 +99,7 @@ public class BookingService(
     {
         var booking = await GetBookingByIdAsync(bookingId);
         
-        if(booking.UserId != userId) throw new UnauthorizedAccessException();
+        if(booking.User.Role != UserRole.Admin && booking.UserId != userId) throw new UnauthorizedAccessException();
         
         booking.Cancel();
         await bookingRepository.SaveChangesAsync();
