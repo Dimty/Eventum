@@ -24,7 +24,7 @@ public class BookingsController(IBookingService bookingService): Controller
     }
     
     [Authorize]
-    [HttpPut("{id}", Name = "CancelBookingById")]
+    [HttpPatch("{id}/cancel", Name = "CancelBookingById")]
     [ProducesResponseType(typeof(Booking), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CancelBooking(Guid id)
