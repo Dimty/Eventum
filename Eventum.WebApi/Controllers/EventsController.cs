@@ -1,10 +1,14 @@
-﻿using Eventum.Application.DTO;
+﻿using System.Security.Claims;
+using Eventum.Application.DTO;
 using Eventum.Application.Interfaces.Services;
 using Eventum.Domain.Models;
+using Eventum.WebApi.Extensions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Eventum.WebApi.Controllers;
-
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiController]
 [Route("events")]
 [Produces("application/json")]
@@ -13,7 +17,7 @@ public class EventsController(IEventService eventService,
 {
     private readonly IEventService _eventService = eventService;
     private readonly IBookingService _bookingService = bookingService;
-    
+    [AllowAnonymous]
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResult<Event>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(string? title, DateTime? from, DateTime? to, int page = 1, int pageSize = 10)
@@ -21,7 +25,7 @@ public class EventsController(IEventService eventService,
         var events = await _eventService.GetAllAsync(title, from, to, page, pageSize);
         return Ok(events);
     }
-
+    [AllowAnonymous]
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -43,6 +47,7 @@ public class EventsController(IEventService eventService,
         return Ok(dto);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -64,6 +69,7 @@ public class EventsController(IEventService eventService,
         return CreatedAtAction(nameof(GetById), new { id = dto.Id }, dto);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
@@ -75,6 +81,7 @@ public class EventsController(IEventService eventService,
         return NoContent();
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -84,13 +91,14 @@ public class EventsController(IEventService eventService,
         return NoContent();
     }
 
+    [Authorize]
     [HttpPost("{id}/book")]
     [ProducesResponseType(typeof(BookingResponseDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Book(Guid id)
     {
-        var booking = await _bookingService.CreateBookingAsync(id);
+        var booking = await _bookingService.CreateBookingAsync(id, User.GetUserId());
 
         Response.Headers.Location = $"/bookings/{booking.Id}";
 

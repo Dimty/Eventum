@@ -10,6 +10,13 @@ public interface IBookingRepository
         Expression<Func<Booking, TProjection>> projection, 
         CancellationToken token = default);
     Task<Booking?> GetByIdAsync(Guid id, CancellationToken token = default);
+    
+    Task<Booking?> GetByIdWithUserAndEventAsync(Guid bookingId, CancellationToken cancellationToken = default);
+
     Task AddAsync(Booking ev, CancellationToken token = default);
+    
+    Task<int> GetActiveBookingCountByUserAsync(Guid userId, CancellationToken token = default);
+    
+    Task<bool> DeleteAsync(Booking booking, CancellationToken token = default);
     Task SaveChangesAsync(CancellationToken token = default);
 }

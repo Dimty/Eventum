@@ -1,4 +1,4 @@
-using Eventum.Domain.Models;
+using Eventum.Domain.Enums;
 
 namespace Eventum.Application.DTO;
 

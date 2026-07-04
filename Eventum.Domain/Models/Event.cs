@@ -4,21 +4,21 @@ namespace Eventum.Domain.Models;
 
 public class Event
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; private set; }
 
-    public string Title { get; set; } = null!;
+    public string Title { get; private set; } = null!;
 
-    public string? Description { get; set; }
+    public string? Description { get; private set; }
 
-    public DateTime StartAt { get; set; }
+    public DateTime StartAt { get; private set; }
 
-    public DateTime EndAt { get; set; }
+    public DateTime EndAt { get; private set; }
 
-    public int TotalSeats { get; set; }
+    public int TotalSeats { get; private set; }
 
-    public int AvailableSeats { get; set; }
+    public int AvailableSeats { get; private set; }
     
-    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<Booking> Bookings { get; private set; } = new List<Booking>();
 
     private Event() { }
 
