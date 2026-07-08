@@ -1,26 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace Eventum.Domain.Models;
+namespace Eventum.Events.Domain;
 
 public class Event
 {
     public Guid Id { get; private set; }
-
     public string Title { get; private set; } = null!;
-
     public string? Description { get; private set; }
-
     public DateTime StartAt { get; private set; }
-
     public DateTime EndAt { get; private set; }
-
     public int TotalSeats { get; private set; }
-
     public int AvailableSeats { get; private set; }
-    
-    public ICollection<Booking> Bookings { get; private set; } = new List<Booking>();
 
-    private Event() { }
+    private Event()
+    {
+    }
 
     private Event(string title, string? description, DateTime startAt, DateTime endAt, int totalSeats)
     {
@@ -35,38 +29,41 @@ public class Event
 
     public static Event Create(string title, string? description, DateTime startAt, DateTime endAt, int totalSeats)
     {
-        if (startAt > endAt)
-            throw new ValidationException("EndAt must be later than StartAt");
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ValidationException("Title is required");
+
+        if (startAt >= endAt)
+            throw new ValidationException("StartAt must be before EndAt");
 
         if (totalSeats <= 0)
             throw new ValidationException("TotalSeats must be greater than zero");
 
         return new Event(title, description, startAt, endAt, totalSeats);
     }
-    
+
     public void Update(string title, string? description, DateTime startAt, DateTime endAt)
     {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ValidationException("Title is required");
+
         if (startAt >= endAt)
-            throw new ValidationException("Start date must be before end date");
+            throw new ValidationException("StartAt must be before EndAt");
 
         Title = title;
         Description = description;
         StartAt = startAt;
         EndAt = endAt;
     }
-    
-    public bool TryReserveSeats(int count = 1)
-    {
-        if (AvailableSeats - count < 0) return false;
-        AvailableSeats -= count;
-        return true;
-    }
 
-    public void ReleaseSeats(int count = 1)
+    public bool TryDecreaseAvailableSeats(int seats)
     {
-        if (AvailableSeats + count > TotalSeats)
-            AvailableSeats = TotalSeats;
-        else
-            AvailableSeats += count;
+        if (seats <= 0)
+            throw new ValidationException("Seats must be greater than zero");
+
+        if (AvailableSeats < seats)
+            return false;
+
+        AvailableSeats -= seats;
+        return true;
     }
 }
