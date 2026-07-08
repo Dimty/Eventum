@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Eventum.Events.Domain\Eventum.Events.Domain.csproj" />
+    <ProjectReference Include="..\Eventum.Shared.Contracts\Eventum.Shared.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
