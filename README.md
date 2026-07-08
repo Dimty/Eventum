@@ -1,345 +1,403 @@
 # Eventum
 
-Простой Web API сервис для управления событиями.
+Eventum — система для управления событиями и бронированиями. Проект был разделён на три независимых ASP.NET Core Web API сервиса и один общий проект с контрактами сообщений.
 
 ## Требования
 
-Перед запуском проекта убедитесь, что выполнены следующие условия:
+Для запуска проекта необходимы:
 
-- установлен PostgreSQL **или** установлен Docker
-- запущен сервер базы данных
-- база данных доступна по указанному хосту и порту (по умолчанию `localhost:5432`)
+- установленный Docker;
+- доступные порты `5001`, `5002`, `5003`, `5433`, `5434`, `5435`, `9092`;
+- .NET SDK 10 для локальной сборки и запуска без контейнеров.
 
----
+## Состав системы
 
-## 🔐 Аутентификация и авторизация
+| Сервис | Проект | Порт | База данных | Ответственность |
+| --- | --- | --- | --- | --- |
+| Users | `Eventum.Users.WebApi` | `5001` | `users` | Регистрация, вход, хеширование пароля, выдача JWT |
+| Events | `Eventum.Events.WebApi` | `5002` | `events` | CRUD событий и учёт доступных мест |
+| Bookings | `Eventum.Bookings.WebApi` | `5003` | `bookings` | Создание, отмена и подтверждение броней |
+| Contracts | `Eventum.Shared.Contracts` | - | - | Общие Kafka-контракты |
 
-### Ролевая модель и разграничение прав
+Каждый сервис построен по принципам чистой архитектуры:
 
-В системе реализована ролевая модель доступа с двумя уровнями привилегий:
+- `Domain` — сущности и доменные правила;
+- `Application` — use cases, DTO, интерфейсы сервисов и репозиториев;
+- `Infrastructure` — EF Core, репозитории, Kafka, фоновые сервисы;
+- `WebApi` — контроллеры, JWT, DI-конфигурация и точка входа.
+
+Сервисы не используют общую схему БД. Связи между сервисами хранятся только по идентификаторам, например `Booking.EventId` и `Booking.UserId`. Прямых HTTP-вызовов между сервисами нет.
+
+## Аутентификация и авторизация
+
+JWT-токен выдаёт только сервис Users. Сервисы Events и Bookings проверяют токен по общим значениям:
+
+- `JwtSettings:Secret`
+- `JwtSettings:Issuer`
+- `JwtSettings:Audience`
+
+Ролевая модель:
 
 | Роль | Уровень доступа |
-|------|-----------------|
-| **ADMIN** | Полный доступ |
-| **USER** | Базовый доступ |
+| --- | --- |
+| `Admin` | управление событиями |
+| `User` | создание, просмотр и отмена своих броней |
 
-#### Разграничение прав по эндпоинтам:
+Публичные эндпоинты:
 
-- **Публичные эндпоинты** (доступны без аутентификации):
-    - `POST /auth/login` — получение JWT-токена
-    - `POST /auth/register` — регистрация нового пользователя
-    - `GET /events` - получение событий
-    - `GET /events/{id}` - получение события по id
+- `POST /auth/register` в Users — регистрация пользователя;
+- `POST /auth/login` в Users — получение JWT-токена;
+- `GET /events` в Events — список событий;
+- `GET /events/{id}` в Events — событие по идентификатору.
 
-- **Требуют роль USER и выше**:
-    - `GET /bookings/{id}` — получение бронирования 
-    - `POST /events/{id}/book` - бронирование
-    - `DELETE /bookings/{id}` — отмена бронирования
+Эндпоинты, требующие JWT:
 
-- **Требуют роль ADMIN**:
-    - `POST /events` - создание события
-    - `PUT /events/{id}` - изменение события
-    - `DELETE /events/{id}` - удаление события
+- `POST /events/{eventId}/book` в Bookings — создание брони;
+- `GET /bookings/{id}` в Bookings — получение брони;
+- `DELETE /bookings/{id}` в Bookings — отмена брони.
 
-## Поднятие окружения (PostgreSQL через Docker)
+Эндпоинты, требующие роль `Admin`:
 
-Проект поддерживает запуск PostgreSQL через `docker-compose`.
+- `POST /events` в Events — создание события;
+- `PUT /events/{id}` в Events — обновление события;
+- `DELETE /events/{id}` в Events — удаление события.
 
-### 1. Запуск контейнера
+## Kafka и контракт BookingConfirmed
 
-В корне проекта выполните:
+Общий контракт находится в проекте `Eventum.Shared.Contracts`.
+
+- Имя топика: `BookingTopics.BookingConfirmed`
+- Значение топика: `booking-confirmed`
+- Контракт сообщения: `BookingConfirmed`
+- Поля сообщения: `BookingId`, `EventId`, `UserId`, `Seats`, `ConfirmedAt`
+
+Поток данных:
+
+1. Bookings создаёт бронь со статусом `Pending` в своей базе.
+2. Фоновый сервис Bookings находит pending-брони.
+3. Bookings подтверждает бронь и сначала сохраняет статус `Confirmed` в свою БД.
+4. Bookings публикует `BookingConfirmed` в Kafka.
+5. Ключ Kafka-сообщения — `EventId`, чтобы сообщения по одному событию обрабатывались последовательно.
+6. Events подписывается на `booking-confirmed`.
+7. Events получает сообщение, находит событие в своей БД и уменьшает `AvailableSeats`.
+8. Если событие не найдено или мест недостаточно, Events логирует проблему и пропускает сообщение, не останавливая подписчик.
+
+Сервис Bookings не уменьшает места и не обращается к Events напрямую. Изменение доступных мест происходит только через Kafka.
+
+## Запуск через Docker
+
+Полный запуск системы описан в `docker-compose.yml`.
 
 ```bash
-docker-compose up -d
+docker compose -f docker-compose.yml up --build -d
 ```
 
-## Настройка подключения к БД
+После запуска доступны:
 
-Строка подключения задаётся в файле `appsettings.json`:
+- Users API: `http://localhost:5001`
+- Events API: `http://localhost:5002`
+- Bookings API: `http://localhost:5003`
+- Kafka: `localhost:9092`
+- Users DB: `localhost:5433`
+- Events DB: `localhost:5434`
+- Bookings DB: `localhost:5435`
 
-```json
+Каждый API-сервис применяет свои EF Core миграции при старте.
+
+## Локальный запуск API без контейнеров сервисов
+
+Можно поднять только инфраструктуру, а API запустить через `dotnet run`.
+
+```bash
+docker compose -f docker-compose.yml up zookeeper kafka users-db events-db bookings-db
+dotnet run --project Eventum.Users.WebApi/Eventum.Users.WebApi.csproj
+dotnet run --project Eventum.Events.WebApi/Eventum.Events.WebApi.csproj
+dotnet run --project Eventum.Bookings.WebApi/Eventum.Bookings.WebApi.csproj
+```
+
+Команды `dotnet run` нужно запускать в отдельных терминалах.
+
+## Сборка
+
+```bash
+dotnet restore Eventum.slnx
+dotnet build Eventum.slnx --no-restore
+```
+
+## Документация API
+
+### 1. Регистрация пользователя
+
+- **Сервис:** Users
+- **Метод:** `POST`
+- **URL:** `http://localhost:5001/auth/register`
+- **Тело запроса:** `RegisterRequest`
+- **Ответ:** `204 No Content`
+- **Ответ:** `400 Bad Request`, если пользователь уже существует
+
+Пример:
+
+```http
+POST /auth/register
+Content-Type: application/json
+
 {
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=eventapi;Username=postgres;Password=postgres"
-  }
+  "login": "user",
+  "password": "password",
+  "role": "User"
 }
 ```
 
-## Управление схемой базы данных
+Для администратора укажите `"role": "Admin"`.
 
-Схема базы данных управляется с помощью миграций Entity Framework Core. Команды выполнять из корневого каталога.
+### 2. Получение JWT-токена
 
-### Создание новой миграции
+- **Сервис:** Users
+- **Метод:** `POST`
+- **URL:** `http://localhost:5001/auth/login`
+- **Тело запроса:** `LoginRequest`
+- **Ответ:** `200 OK` — `AuthResponse`
+- **Ответ:** `401 Unauthorized`, если логин или пароль неверны
 
-При изменении моделей данных необходимо создать новую миграцию:
-
-```bash
-dotnet ef migrations add <MigrationName> --project Eventum/Eventum.csproj
-```
-
-## Запуск
-Все команды выполняются из корневого каталога проекта:
-
-```bash
-dotnet build
-dotnet run --project Eventum/Eventum.csproj
-```
-
-## Запуск тестов
-
-Для запуска тестов выполните команду из корневого каталога проекта:
-
-```bash
-dotnet test
-```
-
-Для запуска интеграционных тестов необходим запущенный Docker.
-
-# Документация API
-
----
-
-## 1. Получить список всех событий с возможностью пагинации
-
-- **Метод:** `GET`
-- **URL:** `/events`
-- **Тело запроса:** нет
--  **Query-параметры:**
-   - `title` (string, опционально)  
-  Поиск по названию события (регистронезависимый, частичное совпадение)
-   - `from` (DateTime, опционально)  
-    Вернуть события, которые начинаются **не раньше** указанной даты
-   - `to` (DateTime, опционально)  
-    Вернуть события, которые заканчиваются **не позже** указанной даты
-   - `page` (int, опционально, по умолчанию = 1)  
-    Номер страницы
-   - `pageSize` (int, опционально, по умолчанию = 10)  
-    Количество элементов на странице
-- **Ответ:** `200 OK` — `PaginatedResult<Event>`
-
-Пример запроса
+Пример:
 
 ```http
-GET /events?title=meet&from=2025-01-01&page=1&pageSize=5
+POST /auth/login
+Content-Type: application/json
+
+{
+  "login": "user",
+  "password": "password"
+}
 ```
 
 Пример ответа:
 
 ```json
-[
-  {
-    "totalCount": 1,
-    "page": 1,
-    "pageSize": 10,
-    "count": 1,
-    "items": [
-      {
-        "id": "27585d89-5ef9-40ac-b282-520f27369741",
-        "title": "string",
-        "description": "string",
-        "startAt": "2026-03-22",
-        "endAt": "2026-03-22",
-        "totalSeats": 3,
-        "availableSeats": 3
-      }
-    ]
-  }
-]
+{
+  "token": "jwt-token"
+}
 ```
 
-## 2. Получить событие по ID
+### 3. Получение списка событий с пагинацией
 
+- **Сервис:** Events
 - **Метод:** `GET`
-- **URL:** `/events/{id}`
+- **URL:** `http://localhost:5002/events`
 - **Тело запроса:** нет
-- **Ответ:** `200 OK` — список `EventResponseDto`
-- **Ответ:** `404 Not Found` — `если событие не найдено`
+- **Ответ:** `200 OK` — `PaginatedResult<Event>`
 
-Пример запроса
+Query-параметры:
+
+- `title` — поиск по названию события;
+- `from` — вернуть события, которые начинаются не раньше указанной даты;
+- `to` — вернуть события, которые заканчиваются не позже указанной даты;
+- `page` — номер страницы, по умолчанию `1`;
+- `pageSize` — количество элементов на странице, по умолчанию `10`.
+
+Пример:
+
+```http
+GET /events?title=meet&from=2026-01-01&page=1&pageSize=5
+```
+
+Пример ответа:
+
+```json
+{
+  "totalCount": 1,
+  "page": 1,
+  "pageSize": 10,
+  "count": 1,
+  "items": [
+    {
+      "id": "27585d89-5ef9-40ac-b282-520f27369741",
+      "title": "Conference",
+      "description": "Demo event",
+      "startAt": "2026-08-01T10:00:00Z",
+      "endAt": "2026-08-01T12:00:00Z",
+      "totalSeats": 10,
+      "availableSeats": 10
+    }
+  ]
+}
+```
+
+### 4. Получение события по ID
+
+- **Сервис:** Events
+- **Метод:** `GET`
+- **URL:** `http://localhost:5002/events/{id}`
+- **Тело запроса:** нет
+- **Ответ:** `200 OK` — `EventResponseDto`
+- **Ответ:** `404 Not Found`, если событие не найдено
+
+Пример:
+
 ```http
 GET /events/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
 ```
 
-Пример ответа:
+### 5. Создание события
 
-```json
-[
-  {
-    "id": "b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678",
-    "title": "Конференция",
-    "description": "Техническая конференция по C#",
-    "startAt": "2026-03-10T09:00:00",
-    "endAt": "2026-03-10T17:00:00"
-  }
-]
-```
-
-## 3. Создать новое событие
-
+- **Сервис:** Events
 - **Метод:** `POST`
-- **URL:** `/events`
+- **URL:** `http://localhost:5002/events`
+- **Доступ:** роль `Admin`
 - **Тело запроса:** `CreateEventDto`
-- **Ответ:** `201 Created` — `возвращает EventResponseDto с новым id`
-- **Ответ:** `400 Bad Request` — `если StartAt > EndAt или отсутствуют обязательные поля (Title, StartAt, EndAt)`
-- **Ответ:** `400 Bad Request` — `если totalSeats <= 0`
+- **Ответ:** `201 Created` — `EventResponseDto`
+- **Ответ:** `400 Bad Request`, если данные невалидны
 
-Пример запроса
+Пример:
+
 ```http
 POST /events
-  -H 'accept: application/json'
-  -H 'Content-Type: application/json'
-  -d '{
-    "title": "string",
-    "description": "string",
-    "startAt": "2026-03-22T14:37:28.202Z",
-    "endAt": "2026-03-22T14:37:28.202Z",
-    "totalSeats": 3
+Authorization: Bearer <ADMIN_TOKEN>
+Content-Type: application/json
+
+{
+  "title": "Conference",
+  "description": "Demo event",
+  "startAt": "2026-08-01T10:00:00Z",
+  "endAt": "2026-08-01T12:00:00Z",
+  "totalSeats": 10
 }
+```
+
+### 6. Обновление события
+
+- **Сервис:** Events
+- **Метод:** `PUT`
+- **URL:** `http://localhost:5002/events/{id}`
+- **Доступ:** роль `Admin`
+- **Тело запроса:** `UpdateEventDto`
+- **Ответ:** `204 No Content`
+- **Ответ:** `404 Not Found`, если событие не найдено
+
+Пример:
+
+```http
+PUT /events/a0821e5e-2163-46cd-95a5-f05cc2febd84
+Authorization: Bearer <ADMIN_TOKEN>
+Content-Type: application/json
+
+{
+  "title": "Updated conference",
+  "description": "Updated demo event",
+  "startAt": "2026-08-01T10:00:00Z",
+  "endAt": "2026-08-01T13:00:00Z"
+}
+```
+
+### 7. Удаление события
+
+- **Сервис:** Events
+- **Метод:** `DELETE`
+- **URL:** `http://localhost:5002/events/{id}`
+- **Доступ:** роль `Admin`
+- **Тело запроса:** нет
+- **Ответ:** `204 No Content`
+- **Ответ:** `404 Not Found`, если событие не найдено
+
+Пример:
+
+```http
+DELETE /events/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
+Authorization: Bearer <ADMIN_TOKEN>
+```
+
+### 8. Создание брони
+
+- **Сервис:** Bookings
+- **Метод:** `POST`
+- **URL:** `http://localhost:5003/events/{eventId}/book`
+- **Доступ:** авторизованный пользователь
+- **Тело запроса:** нет
+- **Заголовок ответа:** `Location` — ссылка на созданную бронь
+- **Ответ:** `202 Accepted` — бронь создана со статусом `Pending`
+- **Ответ:** `409 Conflict`, если пользователь превысил лимит активных броней
+
+Пример:
+
+```http
+POST /events/26aa576d-ed02-4bd5-847b-4a23786ca67d/book
+Authorization: Bearer <USER_TOKEN>
 ```
 
 Пример ответа:
-
-```json
-[
-  {
-    "id": "d2e7b1a4-3c5f-4a6b-b9a8-5c6f12345678",
-    "title": "Вебинар по ASP.NET Core",
-    "description": "Онлайн мероприятие",
-    "startAt": "2026-03-15T14:00:00",
-    "endAt": "2026-03-15T16:00:00",
-    "totalSeats": 3,
-    "availableSeats": 3
-  }
-]
-```
-
-## 4. Обновить существующее событие
-
-- **Метод:** `PUT`
-- **URL:** `/events/{id}`
-- **Тело запроса:** `UpdateEventDto`
-- **Ответ:** `204 No Content` — `успешно обновлено`
-- **Ответ:** `400 Bad Request` — `если StartAt > EndAt или отсутствуют обязательные поля (Title, StartAt, EndAt)`
-- **Ответ:** `404 Not Found` — `если событие с таким id не найдено`
-
-Пример запроса
-```http
-PUT /events/a0821e5e-2163-46cd-95a5-f05cc2febd84
-  -H 'accept: */*' 
-  -H 'Content-Type: application/json' 
-  -d '{
-    "title": "string",
-    "description": "string",
-    "startAt": "2026-03-22T14:44:03.087Z",
-    "endAt": "2026-03-22T14:44:03.087Z"
-}'
-```
-
-## 5. Удалить событие
-
-- **Метод:** `DELETE`
-- **URL:** `/events/{id}`
-- **Тело запроса:** `нет`
-- **Ответ:** `204 No Content` — `успешно удалено`
-- **Ответ:** `404 Not Found` — `если событие не найдено`
-
-Пример запроса
-```http
-DELETE /events/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
-```
-
-## 6. Бронирования
-
-- **Метод:** `POST`
-- **URL:** `/events/{id}/book`
-- **Тело запроса:** `нет`
-- **В заголовке** `Location` — ссылка на созданную бронь
-- **Ответ:** `202 Accepted` — `запрос получен`
-- **Ответ:** `404 Not Found` — `если событие не найдено`
-- **Ответ:** `409 Conflict` — `если отсутствуют свободные места`
-
-Пример запроса
-```http
-POST events/26aa576d-ed02-4bd5-847b-4a23786ca67d/book' \
-  -H 'accept: application/json' \
-  -d ''
-```
-
-Пример ответа
-
-```json
-{
-  "id": "guid",
-  "eventId": "26aa576d-ed02-4bd5-847b-4a23786ca67d",
-  "status": 0,
-  "createdAt": "2025-01-01T10:00:00",
-  "processedAt": null
-}
-```
-
-## 7. Получить информацию о брони
-
-- **Метод:** `GET`
-- **URL:** `/bookings/{id}`
-- **Тело запроса:** `нет`
-- **Ответ:** `200 OK` — `информацию о брони`
-- **Ответ:** `404 Not Found` — `бронь не найдена`
-
-Пример запроса
-```http
-GET /bookings/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
-```
-
-Пример ответа
 
 ```json
 {
   "id": "b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678",
-  "eventId": "guid",
-  "status": 1,
-  "createdAt": "2025-01-01T10:00:00",
-  "processedAt": "2025-01-01T10:00:02"
+  "eventId": "26aa576d-ed02-4bd5-847b-4a23786ca67d",
+  "userId": "a1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678",
+  "seats": 1,
+  "status": 0,
+  "createdAt": "2026-07-04T10:00:00Z",
+  "processedAt": null
 }
+```
+
+### 9. Получение информации о брони
+
+- **Сервис:** Bookings
+- **Метод:** `GET`
+- **URL:** `http://localhost:5003/bookings/{id}`
+- **Доступ:** авторизованный пользователь
+- **Тело запроса:** нет
+- **Ответ:** `200 OK` — `BookingResponseDto`
+- **Ответ:** `404 Not Found`, если бронь не найдена
+
+Пример:
+
+```http
+GET /bookings/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
+Authorization: Bearer <USER_TOKEN>
+```
+
+### 10. Отмена брони
+
+- **Сервис:** Bookings
+- **Метод:** `DELETE`
+- **URL:** `http://localhost:5003/bookings/{id}`
+- **Доступ:** авторизованный пользователь
+- **Тело запроса:** нет
+- **Ответ:** `204 No Content`
+- **Ответ:** `403 Forbidden`, если пользователь пытается отменить чужую бронь
+- **Ответ:** `404 Not Found`, если бронь не найдена
+- **Ответ:** `409 Conflict`, если бронь уже отменена
+
+Пример:
+
+```http
+DELETE /bookings/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
+Authorization: Bearer <USER_TOKEN>
 ```
 
 ## Фоновая обработка бронирований
 
-В приложении реализован фоновый сервис (`BackgroundService`), который обрабатывает бронирования.
+В Bookings реализован фоновый сервис (`BackgroundService`), который обрабатывает бронирования.
 
-### Логика работы
+Логика работы:
 
-1. Сервис периодически проверяет список бронирований
-2. Находит бронирования со статусом `Pending`
-3. Для каждого такого бронирования:
-    - выполняется задержка (1-5 секунды), имитирующая внешний сервис
-    - статус изменяется на `Confirmed`
-    - заполняется поле `ProcessedAt`
-4. Обновлённые данные сохраняются в памяти
+1. Сервис периодически проверяет список броней.
+2. Находит брони со статусом `Pending`.
+3. Для каждой такой брони выполняет задержку от 1 до 5 секунд.
+4. Меняет статус на `Confirmed`.
+5. Заполняет `ProcessedAt`.
+6. Сохраняет изменения в базу Bookings.
+7. Публикует `BookingConfirmed` в Kafka.
 
-### Особенности
+Клиент получает результат не сразу. Для финального статуса нужно повторно запросить бронь через `GET /bookings/{id}`.
 
-- Проект разделен на независимые слои, для обеспечения гибкости, тестируемости и независимости от внешних фреймворков:
-    - **Domain** — содержит core-сущности (`Event`, `Booking`), бизнес-правила и не зависит от других слоёв
-    - **Application** — реализует use cases, содержит интерфейсы репозиториев и сервисов, DTO
-    - **Infrastructure** — реализует интерфейсы из Application (репозитории, фоновые сервисы, миграции)
-    - **WebAPI** — точка входа, контроллеры, DI-конфигурация
-- обработка происходит асинхронно
-- клиент получает результат не сразу
-- необходимо повторно запрашивать бронь для получения финального статуса
+## Проверка полного сценария
 
-## Пример сценария использования
-
-1. Создание события
-```http
-POST /events
-```
-
-2. Создание брони
-```http
-POST /events/{eventId}/book
-```
-
-3. Проверка результаты
-```http
-GET /bookings/{bookingId}
-```
+1. Зарегистрируйте администратора в Users.
+2. Получите JWT администратора.
+3. Создайте событие в Events и запомните `availableSeats`.
+4. Зарегистрируйте обычного пользователя.
+5. Получите JWT пользователя.
+6. Создайте бронь в Bookings.
+7. Дождитесь подтверждения брони фоновым сервисом.
+8. Запросите событие в Events.
+9. Убедитесь, что `availableSeats` уменьшилось.
