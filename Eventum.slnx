@@ -1,16 +1,29 @@
 <Solution>
-  <Folder Name="/Eventum.Application/">
-    <Project Path="Eventum.Application/Eventum.Application.csproj" />
+  <Folder Name="/Shared/">
+    <Project Path="Eventum.Shared.Contracts/Eventum.Shared.Contracts.csproj" />
   </Folder>
-  <Folder Name="/Eventum.Domain/">
-    <Project Path="Eventum.Domain/Eventum.Domain.csproj" />
+  <Folder Name="/Users/">
+    <Project Path="Eventum.Users.Domain/Eventum.Users.Domain.csproj" />
+    <Project Path="Eventum.Users.Application/Eventum.Users.Application.csproj" />
+    <Project Path="Eventum.Users.Infrastructure/Eventum.Users.Infrastructure.csproj" />
+    <Project Path="Eventum.Users.WebApi/Eventum.Users.WebApi.csproj" />
+    <Project Path="Eventum.Users.Tests/Eventum.Users.Tests.csproj" />
+    <Project Path="Eventum.Users.IntegrationTests/Eventum.Users.IntegrationTests.csproj" />
   </Folder>
-  <Folder Name="/Eventum.Infrastructure/">
-    <Project Path="Eventum.Infrastructure/Eventum.Infrastructure.csproj" />
+  <Folder Name="/Events/">
+    <Project Path="Eventum.Events.Domain/Eventum.Events.Domain.csproj" />
+    <Project Path="Eventum.Events.Application/Eventum.Events.Application.csproj" />
+    <Project Path="Eventum.Events.Infrastructure/Eventum.Events.Infrastructure.csproj" />
+    <Project Path="Eventum.Events.WebApi/Eventum.Events.WebApi.csproj" />
+    <Project Path="Eventum.Events.Tests/Eventum.Events.Tests.csproj" />
+    <Project Path="Eventum.Events.IntegrationTests/Eventum.Events.IntegrationTests.csproj" />
   </Folder>
-  <Folder Name="/Eventum.Presentation/">
-    <Project Path="Eventum.WebApi/Eventum.WebApi.csproj" />
+  <Folder Name="/Bookings/">
+    <Project Path="Eventum.Bookings.Domain/Eventum.Bookings.Domain.csproj" />
+    <Project Path="Eventum.Bookings.Application/Eventum.Bookings.Application.csproj" />
+    <Project Path="Eventum.Bookings.Infrastructure/Eventum.Bookings.Infrastructure.csproj" />
+    <Project Path="Eventum.Bookings.WebApi/Eventum.Bookings.WebApi.csproj" />
+    <Project Path="Eventum.Bookings.Tests/Eventum.Bookings.Tests.csproj" />
+    <Project Path="Eventum.Bookings.IntegrationTests/Eventum.Bookings.IntegrationTests.csproj" />
   </Folder>
-  <Project Path="Eventum.IntegrationTests/Eventum.IntegrationTests.csproj" />
-  <Project Path="Eventum.Tests/Eventum.Tests.csproj" />
 </Solution>
