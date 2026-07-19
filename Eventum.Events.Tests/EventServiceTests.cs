@@ -1,7 +1,10 @@
+using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
+using Eventum.Events.Application.Caching;
 using Eventum.Events.Application.DTO;
 using Eventum.Events.Application.Exceptions;
 using Eventum.Events.Application.Interfaces;
+using Eventum.Events.Application.Options;
 using Eventum.Events.Application.Services;
 using Eventum.Events.Domain;
 
@@ -9,6 +12,8 @@ namespace Eventum.Events.Tests;
 
 public class EventServiceTests
 {
+    private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web);
+
     [Fact]
     public void Create_ShouldThrow_WhenEndAtIsBeforeStartAt()
     {
@@ -99,6 +104,72 @@ public class EventServiceTests
     }
 
     [Fact]
+    public async Task GetByIdAsync_ShouldReturnCachedEvent_WithoutCallingRepository()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repository = new InMemoryEventRepository();
+        var cache = new RecordingCacheService();
+        var cachedEvent = Event.Create(
+            "Cached Conference",
+            null,
+            DateTime.UtcNow.AddDays(1),
+            DateTime.UtcNow.AddDays(1).AddHours(2),
+            10);
+        cache.Values[EventCacheKeys.Event(cachedEvent.Id)] = SerializeCacheEntry(cachedEvent);
+        var service = new EventService(repository, cache, new EventCacheSettings());
+
+        var result = await service.GetByIdAsync(cachedEvent.Id, token);
+
+        Assert.Equal(cachedEvent.Id, result.Id);
+        Assert.Equal("Cached Conference", result.Title);
+        Assert.Equal(0, repository.GetByIdCallCount);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ShouldLoadFromRepositoryAndStoreCache_WhenCacheMiss()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repository = new InMemoryEventRepository();
+        var cache = new RecordingCacheService();
+        var ev = Event.Create(
+            "Conference",
+            null,
+            DateTime.UtcNow.AddDays(1),
+            DateTime.UtcNow.AddDays(1).AddHours(2),
+            10);
+        repository.Events.Add(ev);
+        var service = new EventService(repository, cache, new EventCacheSettings { EventTtlSeconds = 120 });
+
+        var result = await service.GetByIdAsync(ev.Id, token);
+
+        Assert.Equal(ev.Id, result.Id);
+        Assert.Equal(1, repository.GetByIdCallCount);
+        Assert.True(cache.Values.ContainsKey(EventCacheKeys.Event(ev.Id)));
+        Assert.Equal(TimeSpan.FromSeconds(120), cache.Ttls[EventCacheKeys.Event(ev.Id)]);
+    }
+
+    [Fact]
+    public async Task GetTopAsync_ShouldLoadFromRepositoryAndStoreCache_WhenCacheMiss()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repository = new InMemoryEventRepository();
+        var cache = new RecordingCacheService();
+        var first = Event.Create("Almost Sold Out", null, DateTime.UtcNow.AddDays(1), DateTime.UtcNow.AddDays(1).AddHours(2), 10);
+        first.TryDecreaseAvailableSeats(9);
+        var second = Event.Create("Half Sold", null, DateTime.UtcNow.AddDays(2), DateTime.UtcNow.AddDays(2).AddHours(2), 10);
+        second.TryDecreaseAvailableSeats(5);
+        repository.Events.AddRange([second, first]);
+        var service = new EventService(repository, cache, new EventCacheSettings { TopEventsTtlSeconds = 45 });
+
+        var result = await service.GetTopAsync(token);
+
+        Assert.Equal([first.Id, second.Id], result.Select(ev => ev.Id));
+        Assert.Equal(1, repository.GetTopCallCount);
+        Assert.True(cache.Values.ContainsKey(EventCacheKeys.Top10));
+        Assert.Equal(TimeSpan.FromSeconds(45), cache.Ttls[EventCacheKeys.Top10]);
+    }
+
+    [Fact]
     public async Task UpdateAsync_ShouldPersistChanges()
     {
         var token = TestContext.Current.CancellationToken;
@@ -129,6 +200,33 @@ public class EventServiceTests
         Assert.Equal("Updated description", updated.Description);
         Assert.Equal(originalStartAt.AddHours(1), updated.StartAt);
         Assert.Equal(originalEndAt.AddHours(1), updated.EndAt);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ShouldInvalidateEventCache()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repository = new InMemoryEventRepository();
+        var cache = new RecordingCacheService();
+        var service = new EventService(repository, cache);
+        var created = await service.CreateAsync(new CreateEventDto
+        {
+            Title = "Conference",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(1).AddHours(2),
+            TotalSeats = 10
+        }, token);
+        var key = EventCacheKeys.Event(created.Id);
+
+        await service.UpdateAsync(created.Id, new UpdateEventDto
+        {
+            Title = "Updated Conference",
+            StartAt = created.StartAt.AddHours(1),
+            EndAt = created.EndAt.AddHours(1)
+        }, token);
+
+        Assert.Contains(key, cache.RemovedKeys);
+        Assert.False(cache.Values.ContainsKey(key));
     }
 
     [Fact]
@@ -173,6 +271,28 @@ public class EventServiceTests
     }
 
     [Fact]
+    public async Task ApplyBookingConfirmedAsync_ShouldInvalidateEventCache_WhenApplied()
+    {
+        var token = TestContext.Current.CancellationToken;
+        var repository = new InMemoryEventRepository();
+        var cache = new RecordingCacheService();
+        var service = new EventService(repository, cache);
+        var ev = await service.CreateAsync(new CreateEventDto
+        {
+            Title = "Conference",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(1).AddHours(2),
+            TotalSeats = 10
+        }, token);
+        var key = EventCacheKeys.Event(ev.Id);
+
+        var applied = await service.ApplyBookingConfirmedAsync(ev.Id, 2, token);
+
+        Assert.True(applied);
+        Assert.Contains(key, cache.RemovedKeys);
+    }
+
+    [Fact]
     public async Task ApplyBookingConfirmedAsync_ShouldReturnFalse_WhenNoSeatsAvailable()
     {
         var token = TestContext.Current.CancellationToken;
@@ -206,6 +326,8 @@ public class EventServiceTests
     private sealed class InMemoryEventRepository : IEventRepository
     {
         public List<Event> Events { get; } = [];
+        public int GetByIdCallCount { get; private set; }
+        public int GetTopCallCount { get; private set; }
 
         public Task<PaginatedResult<Event>> GetAllAsync(
             string? title = null,
@@ -238,8 +360,23 @@ public class EventServiceTests
             });
         }
 
-        public Task<Event?> GetByIdAsync(Guid id, CancellationToken token = default) =>
-            Task.FromResult(Events.FirstOrDefault(ev => ev.Id == id));
+        public Task<Event?> GetByIdAsync(Guid id, CancellationToken token = default)
+        {
+            GetByIdCallCount++;
+            return Task.FromResult(Events.FirstOrDefault(ev => ev.Id == id));
+        }
+
+        public Task<IReadOnlyList<Event>> GetTopBySoldSeatsPercentageAsync(int count = 10, CancellationToken token = default)
+        {
+            GetTopCallCount++;
+            var events = Events
+                .OrderByDescending(ev => (double)(ev.TotalSeats - ev.AvailableSeats) / ev.TotalSeats)
+                .ThenBy(ev => ev.StartAt)
+                .Take(Math.Max(count, 1))
+                .ToList();
+
+            return Task.FromResult<IReadOnlyList<Event>>(events);
+        }
 
         public Task AddAsync(Event ev, CancellationToken token = default)
         {
@@ -251,4 +388,34 @@ public class EventServiceTests
 
         public Task SaveChangesAsync(CancellationToken token = default) => Task.CompletedTask;
     }
+
+    private sealed class RecordingCacheService : ICacheService
+    {
+        public Dictionary<string, string> Values { get; } = [];
+        public Dictionary<string, TimeSpan> Ttls { get; } = [];
+        public List<string> RemovedKeys { get; } = [];
+
+        public Task<string?> GetStringAsync(string key, CancellationToken token = default)
+        {
+            Values.TryGetValue(key, out var value);
+            return Task.FromResult(value);
+        }
+
+        public Task SetStringAsync(string key, string value, TimeSpan ttl, CancellationToken token = default)
+        {
+            Values[key] = value;
+            Ttls[key] = ttl;
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAsync(string key, CancellationToken token = default)
+        {
+            Values.Remove(key);
+            RemovedKeys.Add(key);
+            return Task.CompletedTask;
+        }
+    }
+
+    private static string SerializeCacheEntry(Event ev) =>
+        JsonSerializer.Serialize(EventCacheEntry.FromEvent(ev), CacheJsonOptions);
 }
