@@ -49,6 +49,13 @@ public class EventRepository(EventsDbContext context) : IEventRepository
     public Task<Event?> GetByIdAsync(Guid id, CancellationToken token = default) =>
         context.Events.FirstOrDefaultAsync(ev => ev.Id == id, token);
 
+    public async Task<IReadOnlyList<Event>> GetTopBySoldSeatsPercentageAsync(int count = 10, CancellationToken token = default) =>
+        await context.Events
+            .OrderByDescending(ev => (double)(ev.TotalSeats - ev.AvailableSeats) / ev.TotalSeats)
+            .ThenBy(ev => ev.StartAt)
+            .Take(Math.Max(count, 1))
+            .ToListAsync(token);
+
     public async Task AddAsync(Event ev, CancellationToken token = default) =>
         await context.Events.AddAsync(ev, token);
 

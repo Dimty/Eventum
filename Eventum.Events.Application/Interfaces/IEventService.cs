@@ -9,6 +9,8 @@ public interface IEventService
 
     Task<Event> GetByIdAsync(Guid id, CancellationToken token = default);
 
+    Task<IReadOnlyList<Event>> GetTopAsync(CancellationToken token = default);
+
     Task<Event> CreateAsync(CreateEventDto newEvent, CancellationToken token = default);
 
     Task UpdateAsync(Guid id, UpdateEventDto updatedEvent, CancellationToken token = default);

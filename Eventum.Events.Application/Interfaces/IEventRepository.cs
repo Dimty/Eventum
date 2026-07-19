@@ -15,6 +15,8 @@ public interface IEventRepository
 
     Task<Event?> GetByIdAsync(Guid id, CancellationToken token = default);
 
+    Task<IReadOnlyList<Event>> GetTopBySoldSeatsPercentageAsync(int count = 10, CancellationToken token = default);
+
     Task AddAsync(Event ev, CancellationToken token = default);
 
     void Delete(Event ev);
