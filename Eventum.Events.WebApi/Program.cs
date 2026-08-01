@@ -16,7 +16,10 @@ using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 var serviceName = builder.Configuration["ServiceName"] ?? "events-service";
-var otlpEndpoint = builder.Configuration["Otlp:Endpoint"] ?? throw new InvalidOperationException("Otlp:Endpoint is required");
+var serviceVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+var otlpEndpoint = builder.Configuration["Otlp:Endpoint"]
+    ?? builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+    ?? "http://localhost:4317";
 
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration)
@@ -45,7 +48,12 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(serviceName: serviceName))
+    .ConfigureResource(resource => resource
+        .AddService(
+            serviceName: serviceName,
+            serviceVersion: serviceVersion,
+            serviceInstanceId: Environment.MachineName)
+        .AddAttributes([new("deployment.environment.name", builder.Environment.EnvironmentName)]))
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
@@ -125,6 +133,6 @@ using (var scope = app.Services.CreateScope())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapPrometheusScrapingEndpoint();
+app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
