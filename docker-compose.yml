@@ -85,6 +85,17 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: eventapi-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   users-api:
     build:
       context: .
@@ -126,6 +137,9 @@ services:
       JwtSettings__ExpirationMinutes: 15
       Kafka__BootstrapServers: kafka:29092
       Kafka__ConsumerGroup: eventum-events
+      Redis__ConnectionString: redis:6379
+      Redis__EventTtlSeconds: 300
+      Redis__TopEventsTtlSeconds: 60
 
   bookings-api:
     build:

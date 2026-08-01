@@ -44,6 +44,15 @@ public class EventsController(IEventService eventService) : ControllerBase
         }
     }
 
+    [HttpGet("top")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IEnumerable<EventResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTop(CancellationToken token)
+    {
+        var events = await eventService.GetTopAsync(token);
+        return Ok(events.Select(ToDto));
+    }
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(EventResponseDto), StatusCodes.Status201Created)]

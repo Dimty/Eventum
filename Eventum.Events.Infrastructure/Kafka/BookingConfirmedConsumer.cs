@@ -15,12 +15,12 @@ public class BookingConfirmedConsumer(
     IOptions<KafkaSettings> options,
     ILogger<BookingConfirmedConsumer> logger) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        return Task.Run(() => Consume(stoppingToken), CancellationToken.None);
+        await Task.Run(() => ConsumeAsync(stoppingToken), CancellationToken.None);
     }
 
-    private void Consume(CancellationToken stoppingToken)
+    private async Task ConsumeAsync(CancellationToken stoppingToken)
     {
         var config = new ConsumerConfig
         {
@@ -46,12 +46,9 @@ public class BookingConfirmedConsumer(
                     continue;
                 }
 
-                using var scope = serviceScopeFactory.CreateScope();
+                await using var scope = serviceScopeFactory.CreateAsyncScope();
                 var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
-                var applied = eventService
-                    .ApplyBookingConfirmedAsync(message.EventId, message.Seats, stoppingToken)
-                    .GetAwaiter()
-                    .GetResult();
+                var applied = await eventService.ApplyBookingConfirmedAsync(message.EventId, message.Seats, stoppingToken);
 
                 if (!applied)
                 {

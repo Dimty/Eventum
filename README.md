@@ -7,7 +7,7 @@ Eventum — система для управления событиями и б�
 Для запуска проекта необходимы:
 
 - установленный Docker;
-- доступные порты `5001`, `5002`, `5003`, `5433`, `5434`, `5435`, `9092`;
+- доступные порты `5001`, `5002`, `5003`, `5433`, `5434`, `5435`, `6379`, `9092`;
 - .NET SDK 10 для локальной сборки и запуска без контейнеров.
 
 ## Состав системы
@@ -48,7 +48,8 @@ JWT-токен выдаёт только сервис Users. Сервисы Even
 - `POST /auth/register` в Users — регистрация пользователя;
 - `POST /auth/login` в Users — получение JWT-токена;
 - `GET /events` в Events — список событий;
-- `GET /events/{id}` в Events — событие по идентификатору.
+- `GET /events/{id}` в Events — событие по идентификатору;
+- `GET /events/top` в Events — топ-10 событий по проценту проданных мест.
 
 Эндпоинты, требующие JWT:
 
@@ -84,6 +85,23 @@ JWT-токен выдаёт только сервис Users. Сервисы Even
 
 Сервис Bookings не уменьшает места и не обращается к Events напрямую. Изменение доступных мест происходит только через Kafka.
 
+## Redis и стратегия кеширования
+
+Redis подключён к сервису Events через `StackExchange.Redis`. Соединение `IConnectionMultiplexer` регистрируется в DI как singleton. Слой Application зависит только от интерфейса `ICacheService`; конкретная Redis-реализация находится в Infrastructure.
+
+В сервисе событий используется Cache-Aside для двух read-сценариев:
+
+- `GET /events/{id}` кешируется по ключу `event:{id}`;
+- `GET /events/top` кешируется по ключу `events:top10`.
+
+TTL вынесены в конфигурацию `Redis`. Для отдельного события выбран TTL 300 секунд: карточка события читается часто, но при изменениях должна быстро становиться актуальной. Для топ-10 выбран TTL 60 секунд: это рейтинговый агрегат, который может немного устаревать, но должен чаще обновляться из-за влияния новых бронирований на процент продаж.
+
+Для отдельного события выбрана стратегия инвалидации при записи. После успешного сохранения изменений в базу ключ `event:{id}` удаляется при `PUT /events/{id}`, `DELETE /events/{id}` и при обработке Kafka-сообщения `BookingConfirmed`, которое уменьшает `AvailableSeats`. Порядок операций намеренно такой: сначала запись в БД, затем изменение кеша. Если процесс оборвётся между этими шагами, база останется источником истины, а кеш обновится при следующем промахе.
+
+Кеш топ-10 живёт только по TTL. Явная инвалидация при каждом бронировании не используется, потому что список является агрегатом и небольшое устаревание для рейтинга некритично.
+
+Если Redis недоступен, Redis-адаптер логирует ошибки и не пробрасывает их клиенту. Чтение продолжает работать через PostgreSQL, а операции записи сначала сохраняют данные в базу. Для старта без доступного Redis соединение создаётся с `AbortOnConnectFail=false`.
+
 ## Запуск через Docker
 
 Полный запуск системы описан в `docker-compose.yml`.
@@ -101,6 +119,7 @@ docker compose -f docker-compose.yml up --build -d
 - Users DB: `localhost:5433`
 - Events DB: `localhost:5434`
 - Bookings DB: `localhost:5435`
+- Redis: `localhost:6379`
 
 Каждый API-сервис применяет свои EF Core миграции при старте.
 
@@ -109,7 +128,7 @@ docker compose -f docker-compose.yml up --build -d
 Можно поднять только инфраструктуру, а API запустить через `dotnet run`.
 
 ```bash
-docker compose -f docker-compose.yml up zookeeper kafka users-db events-db bookings-db
+docker compose -f docker-compose.yml up zookeeper kafka users-db events-db bookings-db redis
 dotnet run --project Eventum.Users.WebApi/Eventum.Users.WebApi.csproj
 dotnet run --project Eventum.Events.WebApi/Eventum.Events.WebApi.csproj
 dotnet run --project Eventum.Bookings.WebApi/Eventum.Bookings.WebApi.csproj
@@ -236,6 +255,22 @@ GET /events?title=meet&from=2026-01-01&page=1&pageSize=5
 
 ```http
 GET /events/b1c7f2e5-1f7c-4b0c-a6f7-9e1a12345678
+```
+
+### 4.1. Получение топ-10 популярных событий
+
+- **Сервис:** Events
+- **Метод:** `GET`
+- **URL:** `http://localhost:5002/events/top`
+- **Тело запроса:** нет
+- **Ответ:** `200 OK` — список `EventResponseDto`
+
+События сортируются по проценту проданных мест: `(totalSeats - availableSeats) / totalSeats`.
+
+Пример:
+
+```http
+GET /events/top
 ```
 
 ### 5. Создание события
