@@ -130,6 +130,12 @@ docker compose -f docker-compose.yml up --build -d
 - Events metrics: `http://localhost:5002/metrics`
 - Bookings metrics: `http://localhost:5003/metrics`
 
+Проверка состояния доступна по `/health`:
+
+- Users health: `http://localhost:5001/health`
+- Events health: `http://localhost:5002/health`
+- Bookings health: `http://localhost:5003/health`
+
 Каждый API-сервис применяет свои EF Core миграции при старте.
 
 ## Наблюдаемость
@@ -138,6 +144,7 @@ docker compose -f docker-compose.yml up --build -d
 
 - Трейсы HTTP и EF Core экспортируются по OTLP в Jaeger.
 - Метрики ASP.NET Core и .NET Runtime доступны в Prometheus-формате на `/metrics`.
+- Health checks проверяют доступность PostgreSQL на `/health`.
 - Prometheus скрейпит API по именам `users-service`, `events-service` и `bookings-service` внутри Docker-сети.
 - Логи пишутся в консоль в compact JSON-формате Serilog.
 
