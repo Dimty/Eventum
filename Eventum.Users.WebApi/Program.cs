@@ -14,6 +14,8 @@ var serviceVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "
 var otlpEndpoint = builder.Configuration["Otlp:Endpoint"]
     ?? builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
     ?? "http://localhost:4317";
+var usersConnectionString = builder.Configuration.GetConnectionString("UsersConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:UsersConnection is required");
 
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration)
@@ -41,6 +43,9 @@ builder.Services.AddOpenTelemetry()
         .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
 
+builder.Services.AddHealthChecks()
+    .AddNpgSql(usersConnectionString);
+
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
 builder.Services.AddUsersInfrastructure(builder.Configuration);
@@ -61,6 +66,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();

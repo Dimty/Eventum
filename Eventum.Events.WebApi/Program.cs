@@ -20,6 +20,8 @@ var serviceVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "
 var otlpEndpoint = builder.Configuration["Otlp:Endpoint"]
     ?? builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
     ?? "http://localhost:4317";
+var eventsConnectionString = builder.Configuration.GetConnectionString("EventsConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:EventsConnection is required");
 
 builder.Host.UseSerilog((ctx, cfg) =>
     cfg.ReadFrom.Configuration(ctx.Configuration)
@@ -63,6 +65,9 @@ builder.Services.AddOpenTelemetry()
         .AddAspNetCoreInstrumentation()
         .AddRuntimeInstrumentation()
         .AddPrometheusExporter());
+
+builder.Services.AddHealthChecks()
+    .AddNpgSql(eventsConnectionString);
 
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddEventsInfrastructure(builder.Configuration);
@@ -133,6 +138,7 @@ using (var scope = app.Services.CreateScope())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
