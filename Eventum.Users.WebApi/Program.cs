@@ -2,13 +2,36 @@ using Eventum.Users.Application.Services;
 using Eventum.Users.Infrastructure;
 using Eventum.Users.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+var serviceName = builder.Configuration["ServiceName"] ?? "users-service";
+var otlpEndpoint = builder.Configuration["Otlp:Endpoint"] ?? throw new InvalidOperationException("Otlp:Endpoint is required");
+
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+        .WriteTo.Console(new CompactJsonFormatter()));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(serviceName: serviceName))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation()
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddPrometheusExporter());
 
 builder.Services.AddScoped<RegisterUser>();
 builder.Services.AddScoped<LoginUser>();
@@ -30,5 +53,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapControllers();
+app.MapPrometheusScrapingEndpoint();
 
 app.Run();

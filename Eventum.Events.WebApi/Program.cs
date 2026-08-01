@@ -8,8 +8,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+var serviceName = builder.Configuration["ServiceName"] ?? "events-service";
+var otlpEndpoint = builder.Configuration["Otlp:Endpoint"] ?? throw new InvalidOperationException("Otlp:Endpoint is required");
+
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+        .WriteTo.Console(new CompactJsonFormatter()));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -32,6 +43,18 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(serviceName: serviceName))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation()
+        .AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint)))
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddPrometheusExporter());
 
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddEventsInfrastructure(builder.Configuration);
@@ -102,5 +125,6 @@ using (var scope = app.Services.CreateScope())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapPrometheusScrapingEndpoint();
 
 app.Run();
