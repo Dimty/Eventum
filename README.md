@@ -7,7 +7,7 @@ Eventum — система для управления событиями и б�
 Для запуска проекта необходимы:
 
 - установленный Docker;
-- доступные порты `5001`, `5002`, `5003`, `5433`, `5434`, `5435`, `6379`, `9092`;
+- доступные порты `3000`, `4317`, `5001`, `5002`, `5003`, `5433`, `5434`, `5435`, `6379`, `9090`, `9092`, `16686`;
 - .NET SDK 10 для локальной сборки и запуска без контейнеров.
 
 ## Состав системы
@@ -120,8 +120,28 @@ docker compose -f docker-compose.yml up --build -d
 - Events DB: `localhost:5434`
 - Bookings DB: `localhost:5435`
 - Redis: `localhost:6379`
+- Prometheus: `http://localhost:9090`
+- Jaeger UI: `http://localhost:16686`
+- Grafana: `http://localhost:3000` (`admin` / `admin`)
+
+Каждый API отдаёт Prometheus-метрики по `/metrics`:
+
+- Users metrics: `http://localhost:5001/metrics`
+- Events metrics: `http://localhost:5002/metrics`
+- Bookings metrics: `http://localhost:5003/metrics`
 
 Каждый API-сервис применяет свои EF Core миграции при старте.
+
+## Наблюдаемость
+
+В сервисах Users, Events и Bookings подключены OpenTelemetry и Serilog.
+
+- Трейсы HTTP и EF Core экспортируются по OTLP в Jaeger.
+- Метрики ASP.NET Core и .NET Runtime доступны в Prometheus-формате на `/metrics`.
+- Prometheus скрейпит API по именам `users-service`, `events-service` и `bookings-service` внутри Docker-сети.
+- Логи пишутся в консоль в compact JSON-формате Serilog.
+
+Имя сервиса задаётся параметром `ServiceName`, OTLP endpoint — `Otlp:Endpoint`. В Docker Compose endpoint переопределяется на `http://jaeger:4317`.
 
 ## Локальный запуск API без контейнеров сервисов
 
