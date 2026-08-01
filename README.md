@@ -147,6 +147,7 @@ docker compose -f docker-compose.yml up --build -d
 - Health checks проверяют доступность PostgreSQL на `/health`.
 - Prometheus скрейпит API по именам `users-service`, `events-service` и `bookings-service` внутри Docker-сети.
 - Логи пишутся в консоль в compact JSON-формате Serilog.
+- `OpenTelemetry.Instrumentation.EntityFrameworkCore` зафиксирован на beta-версии для sprint 11; для production его стоит обновить на stable-релиз, когда он будет доступен.
 
 Имя сервиса задаётся параметром `ServiceName`, OTLP endpoint — `Otlp:Endpoint`. В Docker Compose endpoint переопределяется на `http://jaeger:4317`.
 
