@@ -96,6 +96,36 @@ services:
       timeout: 5s
       retries: 10
 
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: eventapi-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: eventapi-jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: eventapi-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./Dashboards:/var/lib/grafana/dashboards:ro
+
   users-api:
     build:
       context: .
@@ -114,6 +144,12 @@ services:
       JwtSettings__Issuer: Eventum
       JwtSettings__Audience: Eventum
       JwtSettings__ExpirationMinutes: 15
+      ServiceName: users-service
+      Otlp__Endpoint: http://jaeger:4317
+    networks:
+      default:
+        aliases:
+          - users-service
 
   events-api:
     build:
@@ -140,6 +176,12 @@ services:
       Redis__ConnectionString: redis:6379
       Redis__EventTtlSeconds: 300
       Redis__TopEventsTtlSeconds: 60
+      ServiceName: events-service
+      Otlp__Endpoint: http://jaeger:4317
+    networks:
+      default:
+        aliases:
+          - events-service
 
   bookings-api:
     build:
@@ -162,8 +204,15 @@ services:
       JwtSettings__Audience: Eventum
       JwtSettings__ExpirationMinutes: 15
       Kafka__BootstrapServers: kafka:29092
+      ServiceName: bookings-service
+      Otlp__Endpoint: http://jaeger:4317
+    networks:
+      default:
+        aliases:
+          - bookings-service
 
 volumes:
   users-db-data:
   events-db-data:
   bookings-db-data:
+  grafana-data:
